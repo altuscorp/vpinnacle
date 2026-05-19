@@ -133,21 +133,28 @@ function LiasoningItem({
   const Icon = ICONS[link.iconName];
   const accent = ACCENT_VARS[link.accent];
   const ref = React.useRef<HTMLAnchorElement>(null);
+  const timerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Always open in a new tab ourselves so we can run the pulse first;
-    // also stops the parent dropdown from racing the navigation.
     e.preventDefault();
+    // Ignore re-clicks while a launch is already in flight — keeps the user
+    // from opening 2+ tabs by accident.
+    if (timerRef.current !== null) return;
+
+    // Open synchronously inside the user gesture so popup blockers
+    // don't de-trust the call.  The pulse animates after, independently.
+    window.open(link.url, "_blank", "noopener,noreferrer");
+    fireToast({ message: `Opening ${link.label}…` });
+
     const el = ref.current;
-
-    const launch = () => {
-      window.open(link.url, "_blank", "noopener,noreferrer");
-      fireToast({ message: `Opening ${link.label}…` });
-      onLaunched();
-    };
-
     if (reduced || !el) {
-      launch();
+      onLaunched();
       return;
     }
 
@@ -156,9 +163,12 @@ function LiasoningItem({
     el.style.setProperty("--pulse-y", `${e.clientY - rect.top}px`);
     el.classList.add("is-launching");
 
-    window.setTimeout(() => {
-      el.classList.remove("is-launching");
-      launch();
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      // The anchor may already be unmounted by the time this fires — guard.
+      const stillMounted = ref.current;
+      if (stillMounted) stillMounted.classList.remove("is-launching");
+      onLaunched();
     }, 220);
   };
 
