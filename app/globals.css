@@ -839,10 +839,12 @@
   }
 }
 @utility nav-pill-active {
-  background: linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep));
+  background: linear-gradient(135deg, rgb(var(--vp-cyan)), rgb(var(--vp-cyan-deep)));
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 8px 24px rgba(225, 29, 42, 0.32);
+  box-shadow:
+    0 8px 24px rgba(34, 181, 227, 0.38),
+    0 0 0 4px rgba(34, 181, 227, 0.18);
   transform: translateY(-1px);
 }
 @utility nav-pill-count {
@@ -978,6 +980,15 @@
   --kpi-neon-done:         163 230 53;  /* lime-400  */
   --kpi-neon-pending:      251 191 36;  /* amber-400 */
   --kpi-neon-not-started:  167 139 250; /* violet-400 */
+
+  /* VPinnacle brand cyan — primary accent across the dashboard surface.
+     RGB triplets so they compose with rgba()/color-mix() the same way
+     the neon palette does. */
+  --vp-cyan:        34 181 227;  /* #22B5E3 */
+  --vp-cyan-bright: 103 232 249; /* #67E8F9 */
+  --vp-cyan-deep:    14 165 233; /* #0EA5E9 */
+  --vp-cyan-glow:   rgba(34, 181, 227, 0.25);
+  --vp-cyan-tint:   rgba(34, 181, 227, 0.08);
 }
 
 /* The strip's substrate band. Light warm-white gradient with a soft
