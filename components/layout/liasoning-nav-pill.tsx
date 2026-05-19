@@ -95,11 +95,6 @@ export function LiasoningNavPill({ links }: Props) {
       <Dialog.Portal>
         <Dialog.Overlay className="liasoning-dialog-overlay" />
         <Dialog.Content className="liasoning-dialog-content">
-          <div className="liasoning-header">
-            <span className="liasoning-header-label liasoning-dialog-eyebrow">
-              External Dashboards
-            </span>
-          </div>
           <Dialog.Title className="liasoning-dialog-title">
             External Dashboards
           </Dialog.Title>
@@ -113,7 +108,7 @@ export function LiasoningNavPill({ links }: Props) {
               aria-label="Close"
               className="liasoning-dialog-close"
             >
-              <X size={16} strokeWidth={2.2} />
+              <X size={22} strokeWidth={2.4} />
             </button>
           </Dialog.Close>
 
@@ -203,7 +198,7 @@ function LiasoningCard({
       onClick={handleClick}
     >
       <span className="liasoning-card-icon" aria-hidden>
-        <Icon size={26} strokeWidth={2} />
+        <Icon size={32} strokeWidth={2} />
       </span>
       <span className="liasoning-card-label">{link.label}</span>
       <span className="liasoning-card-desc">{link.description}</span>

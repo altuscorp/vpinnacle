@@ -240,33 +240,80 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
           style={{ background: "rgba(15, 23, 42, 0.45)", backdropFilter: "blur(4px)" }}
         />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[70] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-section border border-hairline bg-surface-card p-6 shadow-xl"
-          style={{ maxHeight: "calc(100vh - 64px)", overflowY: "auto" }}
+          className="fixed left-1/2 top-1/2 z-[70] w-[min(1120px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-section border border-hairline bg-surface-card shadow-xl overflow-hidden"
+          style={{ maxHeight: "calc(100vh - 48px)" }}
         >
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <Dialog.Title className="text-display-md text-ink-strong">
-                New task
-              </Dialog.Title>
-              <Dialog.Description className="text-[15px] text-ink-subtle mt-1.5">
-                Quick-create. Press Esc to cancel.
-              </Dialog.Description>
-            </div>
+          {/* Header — cyan brand bar + big title */}
+          <div
+            className="relative px-8 py-6 max-md:px-5 max-md:py-5"
+            style={{
+              borderBottom: "1px solid var(--color-hairline)",
+              background:
+                "linear-gradient(135deg, #ffffff 0%, #F0FBFF 100%)",
+            }}
+          >
+            <span
+              aria-hidden
+              className="absolute inset-x-0 top-0"
+              style={{
+                height: 4,
+                background:
+                  "linear-gradient(90deg, rgb(34, 181, 227), rgb(14, 165, 233))",
+              }}
+            />
+            <Dialog.Title
+              className="text-ink-strong"
+              style={{
+                fontFamily: "var(--font-display), system-ui, sans-serif",
+                fontWeight: 900,
+                fontSize: "clamp(28px, 2.8vw, 38px)",
+                letterSpacing: "-0.022em",
+                lineHeight: 1.05,
+              }}
+            >
+              New task
+            </Dialog.Title>
+            <Dialog.Description
+              className="mt-1.5 font-semibold"
+              style={{
+                fontSize: 16,
+                color: "var(--color-ink-muted)",
+              }}
+            >
+              Capture work, attach context, assign owners — all in one go.
+            </Dialog.Description>
             <Dialog.Close asChild>
               <button
                 type="button"
                 aria-label="Close"
-                className="rounded-full p-1 hover:bg-surface-soft text-ink-subtle hover:text-ink-strong"
+                className="absolute top-5 right-5 inline-flex items-center justify-center rounded-full transition-all"
+                style={{
+                  width: 40,
+                  height: 40,
+                  border: "1px solid var(--color-hairline)",
+                  background: "#ffffff",
+                  color: "var(--color-ink-muted)",
+                }}
               >
-                <X size={18} />
+                <X size={20} strokeWidth={2.4} />
               </button>
             </Dialog.Close>
           </div>
-          <NewTaskForm
-            employees={employees}
-            onSuccess={onSuccess}
-            defaults={{ initiatorId: defaultInitiatorId }}
-          />
+
+          {/* Scrollable body — fills the rectangle */}
+          <div
+            className="px-8 py-7 max-md:px-5 max-md:py-5"
+            style={{
+              maxHeight: "calc(100vh - 220px)",
+              overflowY: "auto",
+            }}
+          >
+            <NewTaskForm
+              employees={employees}
+              onSuccess={onSuccess}
+              defaults={{ initiatorId: defaultInitiatorId }}
+            />
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
