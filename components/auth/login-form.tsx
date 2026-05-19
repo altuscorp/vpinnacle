@@ -3,9 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
@@ -34,15 +32,6 @@ function translateFirebaseError(code: string | undefined): string {
       return "We couldn't find that email. Double-check the address your admin sent.";
     case "auth/network-request-failed":
       return "Network hiccup. Check your connection and try once more.";
-    case "auth/popup-closed-by-user":
-    case "auth/cancelled-popup-request":
-      return "Sign-in cancelled. Try again when you're ready.";
-    case "auth/popup-blocked":
-      return "Your browser blocked the Google popup. Allow popups for this site and retry.";
-    case "auth/account-exists-with-different-credential":
-      return "This email is set up with a password. Sign in with your password instead, or ask your admin to switch you to Google.";
-    case "auth/unauthorized-domain":
-      return "Google sign-in isn't enabled for this domain. Ask your admin to whitelist it.";
     default:
       return "Email or password didn't match. Try again.";
   }
@@ -83,7 +72,6 @@ export function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [googlePending, setGooglePending] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -115,36 +103,6 @@ export function LoginForm() {
         setError(translateFirebaseError(code));
       }
     });
-  }
-
-  async function onGoogleSignIn() {
-    if (googlePending || isPending) return;
-    setError(null);
-    setGooglePending(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const cred = await signInWithPopup(getFirebaseAuth(), provider);
-      const idToken = await cred.user.getIdToken();
-      await exchangeIdTokenForSession(idToken);
-      router.replace(welcomeTarget as Route);
-    } catch (err: unknown) {
-      if ((err as Error)?.message === "not-enrolled") {
-        setError(
-          "This Google account isn't enrolled in VPinnacle. Ask your admin to invite the matching work email.",
-        );
-        try {
-          await firebaseSignOut(getFirebaseAuth());
-        } catch {
-          /* best effort */
-        }
-      } else {
-        const code = (err as { code?: string })?.code;
-        setError(translateFirebaseError(code));
-      }
-    } finally {
-      setGooglePending(false);
-    }
   }
 
   return (
@@ -266,52 +224,6 @@ export function LoginForm() {
         </motion.div>
       </div>
 
-      {/* Divider + Google sign-in */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.42, delay: 0.55 }}
-        className="mt-7"
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="h-px flex-1"
-            style={{ background: "rgba(15, 23, 42, 0.08)" }}
-          />
-          <span
-            className="text-brand-pill"
-            style={{
-              fontSize: 11,
-              letterSpacing: "0.18em",
-              color: "var(--color-ink-subtle)",
-            }}
-          >
-            or continue with
-          </span>
-          <div
-            className="h-px flex-1"
-            style={{ background: "rgba(15, 23, 42, 0.08)" }}
-          />
-        </div>
-
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={onGoogleSignIn}
-            disabled={googlePending || isPending}
-            aria-label="Continue with Google"
-            className="login-sso-btn login-sso-btn--wide group"
-          >
-            <span className="login-sso-glyph">
-              <GoogleGlyph />
-            </span>
-            <span className="login-sso-label">
-              {googlePending ? "Opening Google…" : "Continue with Google"}
-            </span>
-          </button>
-        </div>
-      </motion.div>
-
       {/* Terms footer */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -352,25 +264,3 @@ export function LoginForm() {
   );
 }
 
-function GoogleGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.08-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.46-.81 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.45 15.98 5.48 18 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.97 10.71c-.18-.54-.28-1.12-.28-1.71s.1-1.17.28-1.71V4.96H.96C.35 6.17 0 7.55 0 9s.35 2.83.96 4.04l3.01-2.33z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.96 4.96l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"
-      />
-    </svg>
-  );
-}

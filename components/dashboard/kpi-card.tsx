@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { Sparkline } from "@/components/charts/sparkline";
+import { TrendChart } from "@/components/charts/trend-chart";
 import { formatCount } from "@/lib/format";
 import { useCountUp } from "@/lib/use-count-up";
 
@@ -21,6 +21,8 @@ interface BaseProps {
   sublabel: string;
   value: number;
   previous: number;
+  /** 14-day trend series, oldest → newest. Rendered as a labeled
+   *  TrendChart in the tile's white space. */
   sparkline: number[];
   neonKey: NeonKey;
   index?: number;
@@ -28,16 +30,15 @@ interface BaseProps {
 }
 
 /* Hero tile — Total. Full-width strip across the top of the KPI band.
-   Number is set in Bricolage Grotesque at 96–168px (responsive clamp);
-   sparkline runs as a wide neon trail; delta + trend annotation in a
-   tight right column. */
+   Number is the editorial centrepiece. No sparkline, no decorative
+   eyebrows — every element on this tile earns its space by being
+   readable at a glance. */
 export function KpiHeroTile(props: BaseProps) {
   return <GlassTile {...props} variant="hero" />;
 }
 
-/* Status tile — one of five. Sits in a row below the hero. Number is
-   ~48–72px; sparkline at the bottom; delta + "vs last week" in a
-   footer row separated by a neon-tinted hairline. */
+/* Status tile — one of five. Same minimal recipe as the hero, just
+   sized down. Big label, huge number, big sublabel, big delta line. */
 export function KpiStatusTile(props: BaseProps) {
   return <GlassTile {...props} variant="status" />;
 }
@@ -59,6 +60,7 @@ function GlassTile({
   const deltaSign = delta > 0 ? "+" : delta < 0 ? "" : "";
 
   const neon = `var(--kpi-neon-${neonKey})`;
+  const neonDeep = `var(--kpi-neon-${neonKey}-deep)`;
 
   return (
     <Link
@@ -76,10 +78,15 @@ function GlassTile({
         } as React.CSSProperties
       }
     >
-      {/* Animated chromatic conic rim — perimeter only via mask-composite */}
-      <span className="kpi-tile-rim" aria-hidden />
-      {/* Inner radial glow — intensifies on hover (in CSS) */}
-      <span className="kpi-tile-glow" aria-hidden />
+      {/* Tinted top border bar — gives each card its channel signature
+          without burning surface area on a label dot. */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1.5"
+        style={{
+          background: `linear-gradient(90deg, rgb(${neon}), rgb(${neonDeep}))`,
+        }}
+      />
 
       {variant === "hero" ? (
         <HeroBody
@@ -91,6 +98,7 @@ function GlassTile({
           arrow={arrow}
           sparkline={sparkline}
           neon={neon}
+          neonDeep={neonDeep}
         />
       ) : (
         <StatusBody
@@ -102,6 +110,7 @@ function GlassTile({
           arrow={arrow}
           sparkline={sparkline}
           neon={neon}
+          neonDeep={neonDeep}
         />
       )}
     </Link>
@@ -117,6 +126,7 @@ interface BodyProps {
   arrow: string;
   sparkline: number[];
   neon: string;
+  neonDeep: string;
 }
 
 function HeroBody({
@@ -128,92 +138,82 @@ function HeroBody({
   arrow,
   sparkline,
   neon,
+  neonDeep,
 }: BodyProps) {
   return (
-    <div className="relative z-[3] grid grid-cols-[1fr_auto] gap-8 p-10 max-md:p-6 max-md:grid-cols-1">
-      <div className="flex flex-col gap-3 min-w-0">
+    <div className="relative z-[3] flex items-center justify-between gap-10 p-10 max-md:flex-col max-md:items-start max-md:gap-6 max-md:p-7">
+      <div className="flex flex-col gap-4 min-w-0">
+        {/* LABEL — huge, uppercase, channel-deep */}
         <span
-          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] font-semibold"
+          className="uppercase font-black tracking-[0.10em] leading-none"
           style={{
-            fontFamily: "var(--font-mono-display), ui-monospace, monospace",
-            color: `rgb(${neon})`,
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            fontSize: "clamp(22px, 2vw, 32px)",
+            color: `rgb(${neonDeep})`,
           }}
         >
-          <span
-            aria-hidden
-            className="inline-block h-1.5 w-1.5 rounded-full"
-            style={{
-              background: `rgb(${neon})`,
-              boxShadow: `0 0 12px rgb(${neon} / 0.8)`,
-            }}
-          />
           {label}
         </span>
 
+        {/* BIG NUMBER */}
         <span
           className="block leading-[0.85] tracking-[-0.04em] tabular-nums text-ink-strong"
           style={{
             fontFamily: "var(--font-display), system-ui, sans-serif",
-            fontWeight: 800,
-            fontSize: "clamp(96px, 12vw, 168px)",
-            textShadow: `0 0 80px rgb(${neon} / 0.35), 0 1px 0 rgba(255,255,255,0.8)`,
+            fontWeight: 900,
+            fontSize: "clamp(96px, 11vw, 160px)",
           }}
         >
           {formatCount(value)}
         </span>
 
-        <span className="text-[15px] text-ink-muted font-medium">
+        {/* SUBLABEL */}
+        <span
+          className="font-bold leading-tight text-ink-strong"
+          style={{ fontSize: "clamp(22px, 1.6vw, 28px)" }}
+        >
           {sublabel}
         </span>
-
-        <div className="mt-2">
-          <Sparkline
-            values={sparkline}
-            color={`rgb(${neon})`}
-            width={420}
-            height={56}
-            strokeWidth={2.5}
-            responsive
-            glow
-            drawIn
-          />
-        </div>
       </div>
 
-      <div className="flex flex-col items-end justify-between gap-2 max-md:items-start max-md:flex-row max-md:justify-between">
-        <div className="flex flex-col items-end gap-1 max-md:items-start">
-          <span
-            className="inline-flex items-baseline gap-1 text-ink-strong"
-            style={{
-              fontFamily: "var(--font-display), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: 28,
-              lineHeight: 1,
-            }}
-          >
-            <span aria-hidden style={{ color: `rgb(${neon})`, fontSize: 18 }}>
-              {arrow}
-            </span>
-            {deltaSign}
-            {Math.abs(delta)}
-          </span>
-          <span
-            className="text-[10px] uppercase tracking-[0.24em] text-ink-subtle font-semibold"
-            style={{
-              fontFamily: "var(--font-mono-display), ui-monospace, monospace",
-            }}
-          >
-            vs last week
-          </span>
-        </div>
+      {/* TREND CHART — fills the middle white space with a labeled line
+          graph. X-axis: 14d → today. Y-axis: min / max range. */}
+      <div className="flex-1 flex justify-center min-w-0 max-md:w-full max-md:order-3">
+        <TrendChart values={sparkline} color={`rgb(${neon})`} variant="hero" />
+      </div>
 
+      {/* DELTA BLOCK — its own column, big and bold */}
+      <div className="flex flex-col items-end gap-2 shrink-0 max-md:flex-row max-md:items-baseline max-md:gap-3">
         <span
-          className="text-[10px] uppercase tracking-[0.24em] text-ink-subtle/70 max-md:hidden font-medium"
+          className="inline-flex items-baseline gap-2 text-ink-strong"
           style={{
-            fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            fontWeight: 800,
+            fontSize: "clamp(36px, 3.4vw, 52px)",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
           }}
         >
-          14-day trend →
+          <span
+            aria-hidden
+            style={{
+              color: `rgb(${neon})`,
+              fontSize: "0.65em",
+            }}
+          >
+            {arrow}
+          </span>
+          {deltaSign}
+          {Math.abs(delta)}
+        </span>
+        <span
+          className="uppercase font-bold tracking-[0.12em]"
+          style={{
+            fontSize: 16,
+            color: "var(--color-ink-muted)",
+          }}
+        >
+          vs last week
         </span>
       </div>
     </div>
@@ -229,82 +229,79 @@ function StatusBody({
   arrow,
   sparkline,
   neon,
+  neonDeep,
 }: BodyProps) {
   return (
-    <div className="relative z-[3] flex flex-col gap-3 p-5">
+    <div className="relative z-[3] flex flex-col gap-4 p-7 max-md:p-5">
+      {/* LABEL — large + uppercase + channel-deep so each card is
+          immediately identifiable from across the room */}
       <span
-        className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.24em] font-semibold"
+        className="uppercase font-black tracking-[0.08em] leading-none"
         style={{
-          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
-          color: `rgb(${neon})`,
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          fontSize: 22,
+          color: `rgb(${neonDeep})`,
         }}
       >
-        <span
-          aria-hidden
-          className="inline-block h-1 w-1 rounded-full"
-          style={{
-            background: `rgb(${neon})`,
-            boxShadow: `0 0 8px rgb(${neon} / 0.8)`,
-          }}
-        />
         {label}
       </span>
 
+      {/* BIG NUMBER */}
       <span
-        className="block leading-[0.9] tracking-[-0.03em] tabular-nums text-ink-strong"
+        className="block leading-[0.85] tracking-[-0.035em] tabular-nums text-ink-strong"
         style={{
           fontFamily: "var(--font-display), system-ui, sans-serif",
-          fontWeight: 700,
-          fontSize: "clamp(48px, 5vw, 72px)",
-          textShadow: `0 0 36px rgb(${neon} / 0.3), 0 1px 0 rgba(255,255,255,0.6)`,
+          fontWeight: 900,
+          fontSize: "clamp(72px, 7vw, 104px)",
         }}
       >
         {formatCount(value)}
       </span>
 
-      <span className="text-[12px] text-ink-muted font-medium">{sublabel}</span>
+      {/* SUBLABEL */}
+      <span
+        className="font-bold leading-tight text-ink-strong"
+        style={{ fontSize: 22 }}
+      >
+        {sublabel}
+      </span>
 
-      <div className="mt-1">
-        <Sparkline
-          values={sparkline}
-          color={`rgb(${neon})`}
-          width={200}
-          height={28}
-          strokeWidth={1.5}
-          responsive
-          glow
-          drawIn
-        />
+      {/* TREND CHART — sits in the empty space between sublabel and
+          delta line. Labeled X (14d → today) and Y (min / max) axes
+          so the line reads as actual data, not decoration. */}
+      <div className="mt-1 max-w-full overflow-hidden">
+        <TrendChart values={sparkline} color={`rgb(${neon})`} variant="status" />
       </div>
 
-      <div
-        className="mt-1 pt-3 flex items-center justify-between"
-        style={{
-          borderTop: `1px solid rgb(${neon} / 0.22)`,
-        }}
-      >
+      {/* DELTA — single line, no divider needed */}
+      <div className="flex items-baseline gap-2.5 mt-1">
         <span
-          className="inline-flex items-baseline gap-1 text-ink-strong"
+          className="inline-flex items-baseline gap-1.5 text-ink-strong tabular-nums"
           style={{
             fontFamily: "var(--font-display), system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: 17,
+            fontWeight: 800,
+            fontSize: 30,
             lineHeight: 1,
+            letterSpacing: "-0.015em",
           }}
         >
-          <span aria-hidden style={{ color: `rgb(${neon})`, fontSize: 11 }}>
+          <span
+            aria-hidden
+            style={{ color: `rgb(${neon})`, fontSize: 20 }}
+          >
             {arrow}
           </span>
           {deltaSign}
           {Math.abs(delta)}
         </span>
         <span
-          className="text-[9px] uppercase tracking-[0.22em] text-ink-subtle/80 font-semibold"
+          className="uppercase font-bold tracking-[0.10em]"
           style={{
-            fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+            fontSize: 15,
+            color: "var(--color-ink-muted)",
           }}
         >
-          vs last wk
+          vs last week
         </span>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { PRIORITY_LABELS } from "@/db/enums";
 import type { TaskStatus, StatusColorToken } from "@/db/enums";
 import type { TaskListRow } from "@/lib/types";
 import { TaskRowActions } from "./task-row-actions";
+import { EmployeeAvatar } from "@/components/ui/employee-avatar";
 import {
   STATUS_LABELS_FALLBACK,
   STATUS_TONES_FALLBACK,
@@ -77,7 +78,8 @@ function buildColumns(
       cell: ({ row, getValue }) => (
         <Link
           href={`/tasks/${row.original.id}` as Route}
-          className="text-body text-ink-strong hover:text-altus-red underline-offset-2 hover:underline transition-colors"
+          className="task-title-link text-body text-ink-strong underline-offset-2 transition-colors"
+          style={{ fontWeight: 700 }}
         >
           {getValue<string>()}
         </Link>
@@ -92,18 +94,40 @@ function buildColumns(
     {
       accessorKey: "doerName",
       header: "Doer",
-      cell: (info) => (
-        <span className="text-body-lg text-ink">{info.getValue<string>() ?? "—"}</span>
-      ),
+      cell: (info) => {
+        const name = info.getValue<string>();
+        if (!name) return <span className="text-ink-subtle">—</span>;
+        return (
+          <span className="inline-flex items-center gap-2.5">
+            <EmployeeAvatar name={name} size="sm" />
+            <span
+              className="text-ink-strong font-bold"
+              style={{ fontSize: 15 }}
+            >
+              {name}
+            </span>
+          </span>
+        );
+      },
     },
     {
       accessorKey: "initiatorName",
       header: "Initiator",
-      cell: (info) => (
-        <span className="text-body-lg text-ink-muted">
-          {info.getValue<string>() ?? "—"}
-        </span>
-      ),
+      cell: (info) => {
+        const name = info.getValue<string>();
+        if (!name) return <span className="text-ink-subtle">—</span>;
+        return (
+          <span className="inline-flex items-center gap-2.5">
+            <EmployeeAvatar name={name} size="sm" />
+            <span
+              className="text-ink font-semibold"
+              style={{ fontSize: 15 }}
+            >
+              {name}
+            </span>
+          </span>
+        );
+      },
     },
     {
       accessorKey: "doerDept",
@@ -240,7 +264,7 @@ export function TaskTable({
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className="border-b border-hairline last:border-b-0 transition-colors hover:bg-surface-soft"
+              className="task-row border-b border-hairline last:border-b-0 transition-colors"
             >
               {row.getVisibleCells().map((cell) => (
                 <td

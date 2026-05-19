@@ -1,19 +1,8 @@
 "use client";
 import * as React from "react";
-import {
-  Bar,
-  ComposedChart,
-  CartesianGrid,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { format, parseISO } from "date-fns";
-import { formatCount } from "@/lib/format";
 import type { VelocityPoint } from "@/lib/types";
-import { rollingAverage } from "@/lib/transforms/rolling-average";
+import { VelocityChart } from "@/components/charts/velocity-chart";
 import { VelocityHeadline } from "./velocity-headline";
 
 interface WeeklyPoint {
@@ -49,83 +38,6 @@ function bucketByWeek(points: VelocityPoint[]): WeeklyPoint[] {
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ dataKey?: string; value?: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const created =
-    Number(payload.find((p) => p.dataKey === "created")?.value ?? 0);
-  const completed =
-    Number(payload.find((p) => p.dataKey === "completed")?.value ?? 0);
-  const avg =
-    Number(payload.find((p) => p.dataKey === "avgFinished")?.value ?? 0);
-  const net = created - completed;
-  const netColor =
-    net > 0
-      ? "var(--color-amber-deep)"
-      : net < 0
-        ? "var(--color-green-deep)"
-        : "var(--color-ink-muted)";
-  return (
-    <div
-      className="bg-surface-card border border-hairline-strong rounded-chip px-4 py-3"
-      style={{
-        boxShadow: "0 12px 32px rgba(15, 23, 42, 0.12)",
-        minWidth: 200,
-      }}
-    >
-      <p
-        className="text-table-head mb-2"
-        style={{ color: "var(--color-ink-subtle)" }}
-      >
-        Week of {label}
-      </p>
-      <Row color="var(--color-blue)" label="New tasks" value={created} />
-      <Row color="var(--color-green)" label="Finished" value={completed} />
-      <Row color="var(--color-altus-red)" label="4-wk avg finished" value={avg} />
-      <div className="border-t border-hairline pt-2 mt-2 flex items-center gap-2.5">
-        <span className="text-body-lg text-ink-muted flex-1">Net change</span>
-        <span
-          className="text-display-3xs tabular-nums"
-          style={{ color: netColor }}
-        >
-          {net > 0 ? "+" : ""}
-          {net}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Row({
-  color,
-  label,
-  value,
-}: {
-  color: string;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 mt-1">
-      <span
-        className="size-2.5 rounded-full shrink-0"
-        style={{ background: color }}
-      />
-      <span className="text-body-lg text-ink-muted flex-1">{label}</span>
-      <span className="text-ink-strong font-bold tabular-nums text-base">
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export function VelocityHero({ data }: { data: VelocityPoint[] }) {
   const weekly = React.useMemo(() => bucketByWeek(data), [data]);
 
@@ -133,14 +45,6 @@ export function VelocityHero({ data }: { data: VelocityPoint[] }) {
   const totalCompleted = weekly.reduce((s, w) => s + w.completed, 0);
   const weeks = Math.max(weekly.length, 1);
 
-  const avgFinished = React.useMemo(
-    () => rollingAverage(weekly.map((w) => w.completed), 4),
-    [weekly],
-  );
-  const weeklyWithAvg = React.useMemo(
-    () => weekly.map((w, i) => ({ ...w, avgFinished: avgFinished[i] ?? 0 })),
-    [weekly, avgFinished],
-  );
   const avgCreated = Math.round(totalCreated / weeks);
   const avgCompleted = Math.round(totalCompleted / weeks);
   const netPerWeek = avgCreated - avgCompleted;
@@ -204,125 +108,27 @@ export function VelocityHero({ data }: { data: VelocityPoint[] }) {
           </span>
         </div>
 
-        <div className="h-[420px] max-md:h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={weeklyWithAvg}
-              margin={{ top: 10, right: 8, left: 0, bottom: 4 }}
-              barGap={4}
-              barCategoryGap="22%"
-            >
-              <defs>
-                <linearGradient id="vbar-created" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-blue)" stopOpacity={1} />
-                  <stop offset="100%" stopColor="var(--color-blue-deep)" stopOpacity={1} />
-                </linearGradient>
-                <linearGradient id="vbar-completed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-green)" stopOpacity={1} />
-                  <stop offset="100%" stopColor="var(--color-green-deep)" stopOpacity={1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-hairline)" vertical={false} />
-              <XAxis
-                dataKey="weekLabel"
-                tick={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 13,
-                  fill: "var(--color-ink-subtle)",
-                  fontWeight: 500,
-                }}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={10}
-              />
-              <YAxis
-                tick={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  fill: "var(--color-ink-subtle)",
-                }}
-                tickLine={false}
-                axisLine={false}
-                width={36}
-              />
-              <Tooltip
-                cursor={{ fill: "var(--color-surface-soft)", opacity: 0.7 }}
-                content={<CustomTooltip />}
-              />
-              <Bar
-                dataKey="created"
-                fill="url(#vbar-created)"
-                radius={[8, 8, 0, 0]}
-                animationDuration={900}
-              />
-              <Bar
-                dataKey="completed"
-                fill="url(#vbar-completed)"
-                radius={[8, 8, 0, 0]}
-                animationDuration={900}
-              />
-              <Line
-                type="monotone"
-                dataKey="avgFinished"
-                stroke="var(--color-altus-red)"
-                strokeWidth={2.5}
-                dot={false}
-                isAnimationActive={true}
-                animationDuration={900}
-                name="Avg weekly throughput"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        <VelocityChart data={weekly} />
 
-        <footer className="mt-5 flex items-center justify-between gap-6 flex-wrap">
-          <div className="flex items-center gap-6 text-body-lg flex-wrap">
-            <LegendSwatch
-              color="var(--color-blue)"
-              label="New tasks"
-              value={totalCreated}
-            />
-            <LegendSwatch
-              color="var(--color-green)"
-              label="Finished"
-              value={totalCompleted}
-            />
-          </div>
-          <div className="text-body-lg text-ink-subtle tabular-nums">
-            Avg per week:{" "}
-            <span className="text-ink-strong font-medium">
-              {avgCreated} new
-            </span>
-            {" · "}
-            <span className="text-ink-strong font-medium">
-              {avgCompleted} finished
-            </span>
-          </div>
+        <footer className="mt-6 pt-5 border-t border-hairline flex items-center justify-between gap-6 flex-wrap">
+          <span
+            className="uppercase font-bold tracking-[0.12em]"
+            style={{ fontSize: 14, color: "var(--color-ink-muted)" }}
+          >
+            Avg per week
+          </span>
+          <span
+            className="tabular-nums font-bold"
+            style={{ fontSize: 22, color: "var(--color-ink-strong)" }}
+          >
+            <span style={{ color: "var(--color-blue-deep)" }}>{avgCreated}</span>
+            <span className="text-ink-subtle font-medium mx-2">new</span>
+            <span className="text-ink-subtle mx-2">·</span>
+            <span style={{ color: "var(--color-green-deep)" }}>{avgCompleted}</span>
+            <span className="text-ink-subtle font-medium mx-2">finished</span>
+          </span>
         </footer>
       </div>
     </section>
-  );
-}
-
-function LegendSwatch({
-  color,
-  label,
-  value,
-}: {
-  color: string;
-  label: string;
-  value: number;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2 text-ink-muted">
-      <span
-        className="size-3 rounded-sm"
-        style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
-      />
-      <span>{label}</span>
-      <span className="text-mono text-ink-strong font-medium">
-        {formatCount(value)}
-      </span>
-    </span>
   );
 }

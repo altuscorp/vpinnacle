@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import {
   flexRender,
@@ -9,9 +9,10 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Search, X, Users } from "lucide-react";
+import { Search, X, Users, ChevronRight } from "lucide-react";
 import type { EmployeeStatusRow, ViewMode } from "@/lib/types";
 import { CriticalBadge } from "@/components/ui/critical-badge";
+import { EmployeeAvatar } from "@/components/ui/employee-avatar";
 
 type Tone = "green" | "amber" | "red" | "rose";
 
@@ -32,25 +33,27 @@ function Pill({ value, tone }: { value: number; tone: Tone }) {
   );
 }
 
-function buildColumns(view: ViewMode): ColumnDef<EmployeeStatusRow>[] {
+function buildColumns(): ColumnDef<EmployeeStatusRow>[] {
   return [
     {
       accessorKey: "employeeName",
       header: "Employee",
-      cell: (info) => {
-        const row = info.row.original;
-        const viewParam = view === "initiator" ? "&view=initiator" : "";
-        return (
-          <Link
-            href={`/tasks?emp=${row.employeeId}${viewParam}` as Route}
-            className="text-ink-strong font-medium hover:text-altus-red hover:underline transition-colors"
+      cell: (info) => (
+        <span className="inline-flex items-center gap-3">
+          <EmployeeAvatar
+            name={info.row.original.employeeName}
+            size="sm"
+          />
+          <span
+            className="text-ink-strong font-bold"
+            style={{ fontSize: 16 }}
           >
-            {row.employeeName}
-          </Link>
-        );
-      },
+            {info.row.original.employeeName}
+          </span>
+        </span>
+      ),
     },
-    { accessorKey: "department",   header: "Department" },
+    { accessorKey: "department", header: "Department" },
     {
       accessorKey: "criticalCount",
       header: "Critical",
@@ -119,8 +122,19 @@ export function StatusTable({
   rows: EmployeeStatusRow[];
   view: ViewMode;
 }) {
+  const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [selectedDept, setSelectedDept] = React.useState<string | null>(null);
+
+  // Whole-row navigation — anyone can click anywhere on the row (or
+  // Tab to it and hit Enter/Space) to drill into that person's tasks.
+  const hrefFor = React.useCallback(
+    (employeeId: string): Route => {
+      const viewParam = view === "initiator" ? "&view=initiator" : "";
+      return `/tasks?emp=${employeeId}${viewParam}` as Route;
+    },
+    [view],
+  );
 
   const departments = React.useMemo(() => {
     const set = new Set<string>();
@@ -139,7 +153,7 @@ export function StatusTable({
     });
   }, [rows, query, selectedDept]);
 
-  const columns = React.useMemo(() => buildColumns(view), [view]);
+  const columns = React.useMemo(() => buildColumns(), []);
 
   const table = useReactTable({
     data: filtered,
@@ -235,34 +249,60 @@ export function StatusTable({
                       {flexRender(h.column.columnDef.header, h.getContext())}
                     </th>
                   ))}
+                  {/* Chevron column header — silent, just claims width */}
+                  <th aria-hidden style={{ width: 36 }} />
                 </tr>
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-hairline last:border-b-0 transition-colors hover:bg-surface-soft"
-                >
-                  {row.getVisibleCells().map((cell, i) => (
+              {table.getRowModel().rows.map((row) => {
+                const empId = row.original.employeeId;
+                const empName = row.original.employeeName;
+                const target = hrefFor(empId);
+                return (
+                  <tr
+                    key={row.id}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Open ${empName}'s tasks`}
+                    onClick={() => router.push(target)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(target);
+                      }
+                    }}
+                    className="status-row border-b border-hairline last:border-b-0"
+                    style={{ cursor: "pointer" }}
+                  >
+                    {row.getVisibleCells().map((cell, i) => (
+                      <td
+                        key={cell.id}
+                        className={`px-5 py-4 text-body-lg whitespace-nowrap ${
+                          i === 0
+                            ? "text-ink-strong"
+                            : i === 1
+                              ? "text-ink-muted"
+                              : "text-right"
+                        }`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell ?? ((c) => c.getValue()),
+                          cell.getContext(),
+                        )}
+                      </td>
+                    ))}
+                    {/* Chevron — telegraphs the row is a link target */}
                     <td
-                      key={cell.id}
-                      className={`px-5 py-4 text-body-lg whitespace-nowrap ${
-                        i === 0
-                          ? "text-ink-strong"
-                          : i === 1
-                            ? "text-ink-muted"
-                            : "text-right"
-                      }`}
+                      className="status-row-chevron px-2"
+                      aria-hidden
+                      style={{ color: "var(--color-ink-subtle)" }}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell ?? ((c) => c.getValue()),
-                        cell.getContext(),
-                      )}
+                      <ChevronRight size={18} strokeWidth={2.2} />
                     </td>
-                  ))}
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

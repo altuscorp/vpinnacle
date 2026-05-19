@@ -21,8 +21,8 @@ export function LoginRightPanel({ children }: { children: ReactNode }) {
           className="inline-flex items-center text-brand-pill text-white rounded-brand"
           style={{
             background:
-              "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
-            boxShadow: "0 4px 14px rgba(225, 29, 42, 0.32)",
+              "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
+            boxShadow: "0 4px 14px rgba(34, 181, 227, 0.38)",
             fontSize: 10,
             letterSpacing: "0.12em",
             padding: "5px 12px",

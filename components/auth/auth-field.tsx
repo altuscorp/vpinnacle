@@ -50,7 +50,7 @@ export const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(
             fontSize: floating ? 12 : 15,
             color: floating
               ? focused
-                ? "var(--color-altus-red)"
+                ? "rgb(14, 165, 233)"
                 : "#64748B"
               : "#64748B",
             letterSpacing: floating ? "0.08em" : "0",
@@ -83,7 +83,7 @@ export const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(
             paddingRight: trailing ? 46 : 18,
             paddingTop: 24,
             paddingBottom: 12,
-            caretColor: "var(--color-altus-red)",
+            caretColor: "rgb(14, 165, 233)",
           }}
         />
 

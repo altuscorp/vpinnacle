@@ -57,7 +57,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 80% 80% at 50% 100%, rgba(225, 29, 42, 0.35), transparent 65%), linear-gradient(180deg, #0B0F1E 0%, #14102a 100%)",
+              "radial-gradient(ellipse 80% 80% at 50% 100%, rgba(34, 181, 227, 0.40), transparent 65%), linear-gradient(180deg, #0B1B24 0%, #0F2030 100%)",
           }}
         />
         <div
@@ -65,7 +65,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
           className="absolute top-0 left-0 right-0 h-[3px]"
           style={{
             background:
-              "linear-gradient(90deg, var(--color-altus-red) 0%, var(--color-rose) 20%, var(--color-purple) 40%, var(--color-blue) 60%, var(--color-green) 80%, var(--color-amber) 100%)",
+              "linear-gradient(90deg, transparent 0%, rgb(14, 165, 233) 20%, rgb(103, 232, 249) 50%, rgb(14, 165, 233) 80%, transparent 100%)",
+            boxShadow: "0 0 10px rgba(34, 181, 227, 0.55)",
           }}
         />
         <div className="relative z-10 flex h-full flex-col items-start justify-center px-6">
@@ -85,7 +86,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 display: "inline-block",
                 paddingRight: "0.18em",
                 background:
-                  "linear-gradient(110deg, #ff8a8a, #ff2a3b 50%, #f43f5e)",
+                  "linear-gradient(110deg, #67E8F9, #22B5E3 50%, #0EA5E9)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",

@@ -685,12 +685,12 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff3845 0%, var(--color-altus-red) 45%, var(--color-altus-red-deep) 100%);
-  border: 1px solid rgba(176, 20, 31, 0.6);
+  background: linear-gradient(135deg, #67E8F9 0%, rgb(34, 181, 227) 45%, rgb(14, 165, 233) 100%);
+  border: 1px solid rgba(14, 165, 233, 0.6);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.18) inset,
-    0 10px 24px -10px rgba(225, 29, 42, 0.55),
-    0 2px 4px rgba(176, 20, 31, 0.25);
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 10px 24px -10px rgba(34, 181, 227, 0.55),
+    0 2px 4px rgba(14, 165, 233, 0.28);
   transition: transform 180ms ease, box-shadow 220ms ease, filter 220ms ease;
   cursor: pointer;
   overflow: hidden;
@@ -719,7 +719,7 @@
   position: relative;
 }
 @utility auth-link {
-  &:hover { color: var(--color-altus-red); }
+  &:hover { color: rgb(14, 165, 233); }
 }
 
 /* Editorial prose styling for /terms and /privacy.  Scoped so it
@@ -1197,6 +1197,126 @@
     transform: translateY(0) scale(1);
     filter: blur(0);
   }
+}
+
+/* Status Distribution — stacked-bar segment + grid tile hover. */
+.dist-segment {
+  filter: brightness(1) saturate(1);
+}
+.dist-segment:hover {
+  filter: brightness(1.12) saturate(1.15);
+}
+.dist-tile {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease-out;
+}
+.dist-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -12px rgba(15, 23, 42, 0.18);
+  border-color: var(--color-hairline-strong);
+}
+
+/* Top Performers — podium lift on hover + leader row tint. */
+.podium-card {
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.podium-card:hover {
+  transform: translateY(-3px);
+}
+.leader-row {
+  transition:
+    background 200ms ease-out,
+    border-color 200ms ease-out,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.leader-row:hover {
+  background: var(--color-surface-card);
+  border-color: var(--color-hairline-strong);
+  transform: translateX(3px);
+}
+
+/* Status by Doer/Initiator table — click-anywhere rows. Hover paints a
+   cyan left rail + tints the row + the chevron slides right to
+   telegraph the navigation target. */
+.status-row {
+  transition:
+    background-color 180ms ease-out,
+    box-shadow 180ms ease-out;
+  position: relative;
+}
+.status-row:hover {
+  background: var(--vp-cyan-tint);
+  box-shadow: inset 3px 0 0 rgb(var(--vp-cyan));
+}
+.status-row:focus-visible {
+  outline: none;
+  background: var(--vp-cyan-tint);
+  box-shadow:
+    inset 3px 0 0 rgb(var(--vp-cyan)),
+    inset 0 0 0 2px rgb(var(--vp-cyan) / 0.4);
+}
+.status-row-chevron > svg {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.status-row:hover .status-row-chevron > svg,
+.status-row:focus-visible .status-row-chevron > svg {
+  transform: translateX(3px);
+  color: rgb(var(--vp-cyan-deep));
+}
+
+/* Aging Heatmap — click-anywhere lanes. Each lane lifts on hover with
+   a heat-tinted shadow + the chevron slides forward. */
+.aging-lane {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms ease-out;
+}
+.aging-lane:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 38, 38, 0.35);
+  box-shadow:
+    0 16px 36px -16px rgba(220, 38, 38, 0.32),
+    0 4px 14px -4px rgba(15, 23, 42, 0.08);
+}
+.aging-lane:focus-visible {
+  outline: none;
+  border-color: rgb(var(--vp-cyan));
+  box-shadow:
+    0 0 0 3px rgb(var(--vp-cyan) / 0.32),
+    0 16px 36px -16px rgba(220, 38, 38, 0.28);
+}
+.aging-lane-chevron > svg {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.aging-lane:hover .aging-lane-chevron > svg,
+.aging-lane:focus-visible .aging-lane-chevron > svg {
+  transform: translateX(3px);
+  color: #dc2626;
+}
+
+/* Aging popover — task list row hover */
+.aging-popover-row {
+  background: transparent;
+}
+.aging-popover-row:hover {
+  background: var(--color-surface-soft);
+}
+
+/* Tasks table row — cyan hover rail (matches Status by Doer). */
+.task-row:hover {
+  background: var(--vp-cyan-tint);
+  box-shadow: inset 3px 0 0 rgb(var(--vp-cyan));
+}
+
+/* Task title link — cyan hover instead of altus red */
+.task-title-link:hover {
+  color: rgb(var(--vp-cyan-deep));
+  text-decoration: underline;
 }
 
 @media (prefers-reduced-motion: reduce) {

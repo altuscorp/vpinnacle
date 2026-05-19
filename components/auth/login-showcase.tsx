@@ -103,13 +103,14 @@ export function LoginShowcase() {
         ["--spot-y" as string]: "45%",
       }}
     >
-      {/* Vertical 6-color brand stripe on the left edge */}
+      {/* Vertical cyan brand stripe on the left edge */}
       <div
         aria-hidden
         className="absolute left-0 top-0 bottom-0 w-[3px] z-30"
         style={{
           background:
-            "linear-gradient(180deg, var(--color-altus-red) 0%, var(--color-rose) 20%, var(--color-purple) 40%, var(--color-blue) 60%, var(--color-green) 80%, var(--color-amber) 100%)",
+            "linear-gradient(180deg, transparent 0%, rgb(14, 165, 233) 18%, rgb(103, 232, 249) 50%, rgb(14, 165, 233) 82%, transparent 100%)",
+          boxShadow: "0 0 12px rgba(34, 181, 227, 0.6)",
           backgroundSize: "100% 200%",
           animation: "accentStripFlowV 18s linear infinite",
         }}
@@ -121,7 +122,7 @@ export function LoginShowcase() {
         className="pointer-events-none absolute -top-[10%] -left-[15%] h-[60vw] w-[60vw] rounded-full"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(225, 29, 42, 0.45), rgba(225, 29, 42, 0) 70%)",
+            "radial-gradient(closest-side, rgba(34, 181, 227, 0.50), rgba(34, 181, 227, 0) 70%)",
           mixBlendMode: "screen",
           filter: "blur(10px)",
           animation: "orbDriftA 48s ease-in-out infinite",
@@ -177,13 +178,13 @@ export function LoginShowcase() {
         }}
       />
 
-      {/* Mouse-tracked warm spotlight */}
+      {/* Mouse-tracked cyan spotlight */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle 600px at var(--spot-x) var(--spot-y), rgba(225, 29, 42, 0.18), transparent 70%)",
+            "radial-gradient(circle 600px at var(--spot-x) var(--spot-y), rgba(34, 181, 227, 0.22), transparent 70%)",
         }}
       />
 
@@ -226,7 +227,7 @@ export function LoginShowcase() {
               <span
                 style={{
                   background:
-                    "linear-gradient(110deg, #ff8a8a 0%, #ff5560 30%, #ff2a3b 55%, #f43f5e 80%, #ff8a8a 100%)",
+                    "linear-gradient(110deg, #A5F3FC 0%, #67E8F9 30%, #22B5E3 55%, #0EA5E9 80%, #A5F3FC 100%)",
                   backgroundSize: "200% 100%",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -334,8 +335,8 @@ export function LoginShowcase() {
               aria-hidden
               className="inline-block h-1.5 w-1.5 rounded-full"
               style={{
-                background: "var(--color-altus-red)",
-                boxShadow: "0 0 12px rgba(225, 29, 42, 0.7)",
+                background: "rgb(34, 181, 227)",
+                boxShadow: "0 0 12px rgba(34, 181, 227, 0.7)",
                 animation: "livePulse 1.8s ease-in-out infinite",
               }}
             />
@@ -348,7 +349,7 @@ export function LoginShowcase() {
               }}
             >
               Built by{" "}
-              <span style={{ color: "#ff5560", fontWeight: 800 }}>
+              <span style={{ color: "#67E8F9", fontWeight: 800 }}>
                 Altus Corp
               </span>{" "}
               &middot; For the VPinnacle Loans team

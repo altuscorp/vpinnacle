@@ -65,19 +65,19 @@ export function KpiStrip({ kpis }: { kpis: KpiSet }) {
       aria-label="Task summary"
     >
       {/* Aurora — WebGL flowing-gradient background (ReactBits/ogl).
-          Sits at z-0 with pointer-events: none. Painted in violet →
-          pink → cyan to give the warm-white substrate rich animated
-          colour without forcing a dark theme. */}
+          Dialled down to 0.25 so the tile surfaces stay legible; the
+          ambient colour still telegraphs the cyan/violet brand voice
+          but no longer competes with on-tile text. */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ opacity: 0.55 }}
+        style={{ opacity: 0.25 }}
         aria-hidden
       >
         <Aurora
-          colorStops={["#A78BFA", "#EC4899", "#06B6D4"]}
-          amplitude={1.0}
-          blend={0.6}
-          speed={0.6}
+          colorStops={["#A78BFA", "#EC4899", "#22B5E3"]}
+          amplitude={0.8}
+          blend={0.5}
+          speed={0.5}
         />
       </div>
       {/* Subtle grain noise overlay — caps the polish to feel like a
@@ -97,30 +97,42 @@ export function KpiStrip({ kpis }: { kpis: KpiSet }) {
           href={HERO.href}
         />
 
-        {/* Status ticker — 5 tiles. On mobile, scroll-snaps horizontally
-            so we never fall back to the cliché 5-stacked-rectangles. */}
+        {/* Status grid — 5 tiles laid out across a 6-col bus so the row
+            never leaves an orphan cell. Top row: 3 cards at col-span-2
+            (≈33% wide). Bottom row: 2 cards at col-span-3 (≈50% wide).
+            Each card is dramatically bigger than the old 5-up strip,
+            with the bottom row featuring the highest-volume statuses.
+            On mobile, scroll-snaps horizontally. */}
         <div
-          className="grid grid-cols-5 gap-4 max-lg:grid-cols-2 max-sm:flex max-sm:gap-3 max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-1 max-sm:pb-2"
+          className="grid grid-cols-6 gap-5 max-lg:grid-cols-2 max-sm:flex max-sm:gap-3 max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:[-webkit-overflow-scrolling:touch] max-sm:px-1 max-sm:pb-2"
           role="list"
         >
-          {STATUS_ITEMS.map((item, i) => (
-            <div
-              key={item.key}
-              role="listitem"
-              className="max-sm:snap-center max-sm:flex-none max-sm:w-[78%]"
-            >
-              <KpiStatusTile
-                index={i + 1}
-                neonKey={item.neonKey}
-                label={item.label}
-                sublabel={item.sublabel}
-                value={kpis[item.key].current}
-                previous={kpis[item.key].previous}
-                sparkline={kpis[item.key].sparkline}
-                href={item.href}
-              />
-            </div>
-          ))}
+          {STATUS_ITEMS.map((item, i) => {
+            // 0-2 → col-span-2 (3 cards × 2 = 6 cols on top row)
+            // 3-4 → col-span-3 (2 cards × 3 = 6 cols on bottom row)
+            const spanClass =
+              i < 3
+                ? "col-span-2 max-lg:col-span-1"
+                : "col-span-3 max-lg:col-span-1";
+            return (
+              <div
+                key={item.key}
+                role="listitem"
+                className={`${spanClass} max-sm:snap-center max-sm:flex-none max-sm:w-[78%]`}
+              >
+                <KpiStatusTile
+                  index={i + 1}
+                  neonKey={item.neonKey}
+                  label={item.label}
+                  sublabel={item.sublabel}
+                  value={kpis[item.key].current}
+                  previous={kpis[item.key].previous}
+                  sparkline={kpis[item.key].sparkline}
+                  href={item.href}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

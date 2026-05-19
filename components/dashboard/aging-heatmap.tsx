@@ -1,27 +1,28 @@
 "use client";
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
-import { AlertTriangle, Flame, ArrowDownUp } from "lucide-react";
+import { AlertTriangle, Flame, ArrowDownUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { AGE_BUCKETS, type AgeBucketId } from "@/db/enums";
 import type { AgingRow, HeatmapCellTask } from "@/lib/types";
+import { EmployeeAvatar } from "@/components/ui/employee-avatar";
 
 // Age-coded palette: cool/green for fresh, hot/red for old.
-// Each bucket maps to its own color and weight, so the bar visually grows
-// "hotter" as tasks age — readable at a glance with no learning curve.
+// Bars use a gradient pair for depth; deep is the saturated label color.
 const BUCKET_COLOR: Record<
   AgeBucketId,
-  { fill: string; deep: string; tint: string }
+  { fill: string; deep: string; tint: string; light: string }
 > = {
-  "0-3":   { fill: "#86efac", deep: "#15803d", tint: "#dcfce7" },
-  "4-7":   { fill: "#4ade80", deep: "#15803d", tint: "#d1fae5" },
-  "8-14":  { fill: "#bef264", deep: "#65a30d", tint: "#ecfccb" },
-  "15-20": { fill: "#fcd34d", deep: "#b45309", tint: "#fef3c7" },
-  "21-30": { fill: "#fb923c", deep: "#c2410c", tint: "#ffedd5" },
-  "31-45": { fill: "#f87171", deep: "#b91c1c", tint: "#fee2e2" },
-  "46-60": { fill: "#ef4444", deep: "#991b1b", tint: "#fecaca" },
-  "60+":   { fill: "#b91c1c", deep: "#7f1d1d", tint: "#fecaca" },
+  "0-3":   { fill: "#86efac", deep: "#15803d", tint: "#dcfce7", light: "#bbf7d0" },
+  "4-7":   { fill: "#4ade80", deep: "#15803d", tint: "#d1fae5", light: "#86efac" },
+  "8-14":  { fill: "#bef264", deep: "#65a30d", tint: "#ecfccb", light: "#d9f99d" },
+  "15-20": { fill: "#fcd34d", deep: "#b45309", tint: "#fef3c7", light: "#fde68a" },
+  "21-30": { fill: "#fb923c", deep: "#c2410c", tint: "#ffedd5", light: "#fdba74" },
+  "31-45": { fill: "#f87171", deep: "#b91c1c", tint: "#fee2e2", light: "#fca5a5" },
+  "46-60": { fill: "#ef4444", deep: "#991b1b", tint: "#fecaca", light: "#f87171" },
+  "60+":   { fill: "#b91c1c", deep: "#7f1d1d", tint: "#fecaca", light: "#ef4444" },
 };
 
 const BUCKET_WEIGHT: Record<AgeBucketId, number> = {
@@ -75,8 +76,7 @@ export function AgingHeatmap({
 
   const totalAging = enriched.reduce((s, r) => s + r.total, 0);
   const criticalTotal = enriched.reduce(
-    (s, r) =>
-      s + CRITICAL_BUCKETS.reduce((acc, k) => acc + r.buckets[k], 0),
+    (s, r) => s + CRITICAL_BUCKETS.reduce((acc, k) => acc + r.buckets[k], 0),
     0,
   );
 
@@ -89,46 +89,80 @@ export function AgingHeatmap({
       }}
     >
       <div
-        className="rounded-section bg-surface-card border border-hairline p-8 max-md:p-5"
-        style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
+        className="aging-shell rounded-section p-8 max-md:p-5 relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(160deg, #fffefb 0%, #fef7ed 60%, #fef2f2 100%)",
+          border: "1px solid var(--color-hairline)",
+          boxShadow:
+            "0 1px 3px rgba(15, 23, 42, 0.04), 0 20px 50px -28px rgba(225, 29, 42, 0.15)",
+        }}
       >
-        <header className="mb-6 flex items-start justify-between gap-6 max-md:flex-col max-md:gap-3">
-          <div>
-            <h2 className="text-display-lg text-ink-strong flex items-center gap-2.5">
-              <Flame className="size-7 text-red-deep" strokeWidth={2.25} />
-              Aging Heatmap
-            </h2>
-            <p className="text-body-lg text-ink-subtle mt-1">
-              {enriched.length} {enriched.length === 1 ? "person" : "people"}
-              {" · "}
-              {totalAging} pending {totalAging === 1 ? "task" : "tasks"} aging
+        {/* Heat wash backdrop */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 30% 60% at 100% 100%, rgba(239, 68, 68, 0.10), transparent 60%), radial-gradient(ellipse 30% 60% at 0% 0%, rgba(34, 197, 94, 0.08), transparent 60%)",
+          }}
+        />
+
+        <div className="relative">
+          <header className="mb-6 flex items-start justify-between gap-6 max-md:flex-col max-md:gap-3">
+            <div>
+              <h2 className="flex items-center gap-2.5 text-ink-strong">
+                <Flame
+                  className="size-8"
+                  style={{ color: "#dc2626" }}
+                  strokeWidth={2.25}
+                />
+                <span
+                  className="uppercase font-black tracking-[0.04em]"
+                  style={{
+                    fontFamily: "var(--font-display), system-ui, sans-serif",
+                    fontSize: 30,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Aging Heatmap
+                </span>
+              </h2>
+              <p className="mt-1.5 font-semibold" style={{ fontSize: 17, color: "var(--color-ink-muted)" }}>
+                {enriched.length} {enriched.length === 1 ? "person" : "people"}
+                {" · "}
+                <span className="tabular-nums" style={{ color: "var(--color-ink-strong)" }}>
+                  {totalAging}
+                </span>{" "}
+                pending {totalAging === 1 ? "task" : "tasks"} aging — click any lane to see them
+              </p>
+            </div>
+            <SortControl value={sortMode} onChange={setSortMode} />
+          </header>
+
+          {criticalTotal > 0 && <AlertBanner count={criticalTotal} />}
+
+          <Legend />
+
+          {top12.length === 0 ? (
+            <p className="mt-6 font-semibold" style={{ fontSize: 17, color: "var(--color-ink-muted)" }}>
+              No pending tasks for the current filter.
             </p>
-          </div>
-          <SortControl value={sortMode} onChange={setSortMode} />
-        </header>
-
-        {criticalTotal > 0 && <AlertBanner count={criticalTotal} />}
-
-        <Legend />
-
-        {top12.length === 0 ? (
-          <p className="text-body-lg text-ink-subtle mt-6">
-            No pending tasks for the current filter.
-          </p>
-        ) : (
-          <div className="mt-5 space-y-2">
-            <LaneHeader />
-            {top12.map((r, i) => (
-              <Lane
-                key={r.employeeId}
-                row={r}
-                maxTotal={maxTotal}
-                index={i}
-                employeeTasks={cellTasks[r.employeeId] ?? {}}
-              />
-            ))}
-          </div>
-        )}
+          ) : (
+            <div className="mt-6 space-y-2">
+              <LaneHeader />
+              {top12.map((r, i) => (
+                <Lane
+                  key={r.employeeId}
+                  row={r}
+                  maxTotal={maxTotal}
+                  index={i}
+                  employeeTasks={cellTasks[r.employeeId] ?? {}}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -148,11 +182,11 @@ function SortControl({
   ];
   return (
     <div
-      className="inline-flex items-center gap-1 p-1 rounded-chip bg-surface-track border border-hairline"
+      className="inline-flex items-center gap-1 p-1 rounded-chip bg-surface-card border border-hairline"
       role="tablist"
       aria-label="Sort aging table"
     >
-      <ArrowDownUp className="size-3.5 text-ink-subtle ml-1.5 mr-0.5" />
+      <ArrowDownUp className="size-4 text-ink-subtle ml-1.5 mr-0.5" />
       {options.map((o) => {
         const active = value === o.id;
         return (
@@ -162,13 +196,12 @@ function SortControl({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(o.id)}
-            className="px-3.5 py-2 rounded-pill text-[13px] font-bold transition-all duration-200 tabular-nums"
+            className="px-4 py-2 rounded-pill font-bold transition-all duration-200 tabular-nums"
             style={{
-              background: active ? "var(--color-surface-card)" : "transparent",
-              color: active
-                ? "var(--color-ink-strong)"
-                : "var(--color-ink-subtle)",
-              boxShadow: active ? "0 1px 3px rgba(15,23,42,0.08)" : "none",
+              fontSize: 14,
+              background: active ? "var(--color-ink-strong)" : "transparent",
+              color: active ? "#ffffff" : "var(--color-ink-muted)",
+              boxShadow: active ? "0 4px 10px rgba(15,23,42,0.18)" : "none",
             }}
           >
             {o.label}
@@ -182,17 +215,20 @@ function SortControl({
 function AlertBanner({ count }: { count: number }) {
   return (
     <div
-      className="mt-1 mb-2 flex items-center gap-3 rounded-chip px-4 py-3"
+      className="mt-1 mb-3 flex items-center gap-3 rounded-chip px-5 py-3.5"
       style={{
         background:
-          "linear-gradient(90deg, color-mix(in srgb, #e11d2a 10%, transparent), color-mix(in srgb, #e11d2a 4%, transparent))",
-        borderLeft: "3px solid #e11d2a",
+          "linear-gradient(90deg, rgba(225, 29, 42, 0.12), rgba(225, 29, 42, 0.04))",
+        borderLeft: "4px solid #dc2626",
+        boxShadow: "0 4px 14px -8px rgba(220, 38, 38, 0.45)",
       }}
     >
-      <AlertTriangle className="size-5 shrink-0" style={{ color: "#b0141f" }} />
-      <p className="text-body text-ink-strong">
-        <span className="font-bold tabular-nums">{count}</span>
-        <span className="text-ink-soft">
+      <AlertTriangle className="size-6 shrink-0" style={{ color: "#b0141f" }} />
+      <p style={{ fontSize: 17, color: "var(--color-ink-strong)" }}>
+        <span className="tabular-nums font-black" style={{ fontSize: 22 }}>
+          {count}
+        </span>
+        <span className="font-semibold" style={{ color: "var(--color-ink-soft)" }}>
           {" "}
           {count === 1 ? "task is" : "tasks are"} aging more than 30 days —
           escalate or close
@@ -205,22 +241,34 @@ function AlertBanner({ count }: { count: number }) {
 function Legend() {
   return (
     <div className="mt-4 flex items-center gap-1.5 flex-wrap">
-      <span className="text-table-head text-ink-subtle mr-1">Age</span>
+      <span
+        className="uppercase font-bold tracking-[0.10em] mr-1.5"
+        style={{
+          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+          fontSize: 13,
+          color: "var(--color-ink-muted)",
+        }}
+      >
+        Age
+      </span>
       {AGE_BUCKETS.map((b) => {
         const c = BUCKET_COLOR[b.id];
         return (
           <div
             key={b.id}
-            className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
-            style={{ background: c.tint }}
+            className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1"
+            style={{
+              background: c.tint,
+              border: `1px solid ${c.light}`,
+            }}
           >
             <span
-              className="inline-block size-2 rounded-full"
-              style={{ background: c.fill }}
+              className="inline-block size-2.5 rounded-full"
+              style={{ background: c.fill, boxShadow: `0 0 6px ${c.fill}` }}
             />
             <span
-              className="text-[13px] font-bold tabular-nums"
-              style={{ color: c.deep }}
+              className="font-black tabular-nums"
+              style={{ fontSize: 13, color: c.deep }}
             >
               {b.id}d
             </span>
@@ -234,13 +282,50 @@ function Legend() {
 function LaneHeader() {
   return (
     <div
-      className="grid items-center gap-4 px-2 pb-1 max-md:hidden"
-      style={{ gridTemplateColumns: "160px 64px 1fr 56px" }}
+      className="grid items-center gap-4 px-3 pb-2 max-md:hidden"
+      style={{ gridTemplateColumns: "260px 88px 1fr 64px 28px" }}
     >
-      <span className="text-table-head">Employee</span>
-      <span className="text-table-head text-center">Risk</span>
-      <span className="text-table-head">Pending by age (oldest →)</span>
-      <span className="text-table-head text-right">Total</span>
+      <span
+        className="uppercase font-bold tracking-[0.10em]"
+        style={{
+          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+          fontSize: 12,
+          color: "var(--color-ink-muted)",
+        }}
+      >
+        Employee
+      </span>
+      <span
+        className="text-center uppercase font-bold tracking-[0.10em]"
+        style={{
+          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+          fontSize: 12,
+          color: "var(--color-ink-muted)",
+        }}
+      >
+        Risk
+      </span>
+      <span
+        className="uppercase font-bold tracking-[0.10em]"
+        style={{
+          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+          fontSize: 12,
+          color: "var(--color-ink-muted)",
+        }}
+      >
+        Pending by age (oldest →)
+      </span>
+      <span
+        className="text-right uppercase font-bold tracking-[0.10em]"
+        style={{
+          fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+          fontSize: 12,
+          color: "var(--color-ink-muted)",
+        }}
+      >
+        Total
+      </span>
+      <span aria-hidden />
     </div>
   );
 }
@@ -256,21 +341,54 @@ function Lane({
   index: number;
   employeeTasks: Record<string, HeatmapCellTask[]>;
 }) {
+  const router = useRouter();
   const lengthPct = (row.total / maxTotal) * 100;
+  const target = `/tasks?emp=${row.employeeId}` as Route;
+
   return (
     <div
-      className="grid items-center gap-4 px-2 py-1.5 rounded-chip hover:bg-surface-soft transition-colors max-md:gap-2"
+      role="link"
+      tabIndex={0}
+      aria-label={`Open ${row.employeeName}'s aging tasks (risk ${row.risk}, ${row.total} pending)`}
+      onClick={() => router.push(target)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          router.push(target);
+        }
+      }}
+      className="aging-lane grid items-center gap-4 px-3 py-3.5 rounded-chip transition-all max-md:gap-2"
       style={{
-        gridTemplateColumns: "160px 64px 1fr 56px",
+        gridTemplateColumns: "260px 88px 1fr 64px 28px",
+        background: "var(--color-surface-card)",
+        border: "1px solid var(--color-hairline)",
         opacity: 0,
         animation: `fadeUp 420ms ease-out ${index * 50 + 200}ms forwards`,
+        cursor: "pointer",
       }}
     >
-      <span className="text-body-lg text-ink truncate font-medium">
-        {row.employeeName}
-      </span>
+      {/* Employee — avatar + name */}
+      <div className="flex items-center gap-3 min-w-0">
+        <EmployeeAvatar name={row.employeeName} size="md" />
+        <span
+          className="text-ink-strong truncate font-bold"
+          style={{ fontSize: 17 }}
+        >
+          {row.employeeName}
+        </span>
+      </div>
+
+      {/* Risk score */}
       <RiskChip score={row.risk} />
-      <div className="relative h-9 rounded-bar bg-surface-track overflow-hidden border border-hairline">
+
+      {/* Heat bar */}
+      <div
+        className="relative rounded-bar bg-surface-soft overflow-hidden"
+        style={{
+          height: 52,
+          border: "1px solid var(--color-hairline)",
+        }}
+      >
         <div
           className="absolute inset-y-0 left-0 flex"
           style={{
@@ -296,8 +414,26 @@ function Lane({
           })}
         </div>
       </div>
-      <span className="text-display-3xs text-ink-strong text-right tabular-nums">
+
+      {/* Total */}
+      <span
+        className="text-right tabular-nums text-ink-strong font-black"
+        style={{
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          fontSize: 26,
+          letterSpacing: "-0.02em",
+        }}
+      >
         {row.total}
+      </span>
+
+      {/* Chevron — telegraphs click target */}
+      <span
+        className="aging-lane-chevron inline-flex items-center justify-center"
+        aria-hidden
+        style={{ color: "var(--color-ink-subtle)" }}
+      >
+        <ChevronRight size={20} strokeWidth={2.4} />
       </span>
     </div>
   );
@@ -306,26 +442,51 @@ function Lane({
 function RiskChip({ score }: { score: number }) {
   const tone = score >= 60 ? "red" : score >= 35 ? "amber" : "green";
   const palette = {
-    red: { bg: "#fee2e2", fg: "#991b1b", dot: "#dc2626" },
-    amber: { bg: "#fef3c7", fg: "#92400e", dot: "#f59e0b" },
-    green: { bg: "#d1fae5", fg: "#166534", dot: "#16a34a" },
+    red: {
+      bg: "linear-gradient(135deg, #fecaca, #f87171)",
+      fg: "#7f1d1d",
+      dot: "#dc2626",
+      glow: "0 4px 12px rgba(220, 38, 38, 0.35)",
+    },
+    amber: {
+      bg: "linear-gradient(135deg, #fef3c7, #fbbf24)",
+      fg: "#78350f",
+      dot: "#d97706",
+      glow: "0 4px 12px rgba(217, 119, 6, 0.30)",
+    },
+    green: {
+      bg: "linear-gradient(135deg, #d1fae5, #34d399)",
+      fg: "#064e3b",
+      dot: "#059669",
+      glow: "0 4px 12px rgba(5, 150, 105, 0.25)",
+    },
   }[tone];
   return (
     <div
-      className="inline-flex items-center justify-center gap-1.5 rounded-pill px-2 py-1 mx-auto"
-      style={{ background: palette.bg, minWidth: 56 }}
+      className="inline-flex items-center justify-center gap-2 rounded-pill px-3 py-1.5 mx-auto"
+      style={{
+        background: palette.bg,
+        minWidth: 76,
+        boxShadow: palette.glow,
+        border: "1px solid rgba(255,255,255,0.5)",
+      }}
       title={`Aging risk score: ${score}/100`}
     >
       <span
-        className="size-1.5 rounded-full"
+        className="size-2 rounded-full"
         style={{
           background: palette.dot,
-          boxShadow: tone === "red" ? `0 0 6px ${palette.dot}` : "none",
+          boxShadow: tone === "red" ? `0 0 8px ${palette.dot}` : "none",
         }}
       />
       <span
-        className="text-[13px] font-bold tabular-nums"
-        style={{ color: palette.fg }}
+        className="font-black tabular-nums"
+        style={{
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          fontSize: 17,
+          color: palette.fg,
+          letterSpacing: "-0.01em",
+        }}
       >
         {score}
       </span>
@@ -349,7 +510,7 @@ function Segment({
   tasks: HeatmapCellTask[];
 }) {
   const c = BUCKET_COLOR[bucketId];
-  const showLabel = widthPct > 10;
+  const showLabel = widthPct > 8;
   const isCritical = CRITICAL_BUCKETS.includes(bucketId);
 
   return (
@@ -357,57 +518,116 @@ function Segment({
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="h-full flex items-center justify-center text-white font-bold text-[13px] transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 hover:brightness-110 hover:scale-y-110 origin-bottom"
+          // Crucial: keep the segment click from bubbling up to the lane's
+          // navigation handler so the popover opens instead of redirecting.
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
+          className="aging-segment h-full flex items-center justify-center text-white transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 hover:brightness-110 hover:scale-y-110 origin-bottom"
           style={{
             width: `${widthPct}%`,
-            background: c.fill,
+            background: `linear-gradient(180deg, ${c.light}, ${c.fill})`,
             minWidth: 0,
-            outlineColor: "var(--color-altus-red)",
+            outlineColor: c.deep,
             animation: isCritical
               ? "heatPulse 2.4s ease-in-out infinite"
               : "none",
+            fontFamily: "var(--font-display), system-ui, sans-serif",
+            fontWeight: 900,
+            fontSize: 17,
+            textShadow: "0 1px 2px rgba(0,0,0,0.28)",
           }}
           aria-label={`${employeeName}, ${bucketLabel}: ${count} pending`}
         >
-          {showLabel && (
-            <span className="tabular-nums drop-shadow-sm">{count}</span>
-          )}
+          {showLabel && <span className="tabular-nums">{count}</span>}
         </button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
           side="top"
           align="center"
-          sideOffset={8}
+          sideOffset={10}
           collisionPadding={12}
-          className="z-[100] bg-surface-card border border-hairline-strong rounded-chip px-4 py-3 text-[15px] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto"
-          style={{ boxShadow: "0 12px 32px rgba(15, 23, 42, 0.10)" }}
+          className="z-[100] bg-surface-card border rounded-section overflow-hidden max-h-[var(--radix-popover-content-available-height)]"
+          style={{
+            borderColor: c.deep,
+            borderWidth: 2,
+            boxShadow:
+              "0 24px 56px -16px rgba(15, 23, 42, 0.24), 0 8px 24px -8px rgba(15, 23, 42, 0.14)",
+            minWidth: 360,
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-ink-strong font-bold">{employeeName}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span
-              className="size-2 rounded-full"
-              style={{ background: c.fill }}
-            />
-            <p className="text-ink-muted">{bucketLabel}</p>
+          {/* Header — coloured band with the bucket label */}
+          <div
+            className="px-5 py-4"
+            style={{
+              background: `linear-gradient(135deg, ${c.fill}, ${c.deep})`,
+              color: "#ffffff",
+            }}
+          >
+            <p
+              className="font-black leading-tight"
+              style={{
+                fontFamily: "var(--font-display), system-ui, sans-serif",
+                fontSize: 22,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {employeeName}
+            </p>
+            <p
+              className="uppercase tracking-[0.12em] font-bold mt-1.5 opacity-95"
+              style={{
+                fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+                fontSize: 13,
+              }}
+            >
+              {bucketLabel} · {tasks.length}{" "}
+              {tasks.length === 1 ? "task" : "tasks"}
+            </p>
           </div>
-          <ul className="mt-2 flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1 min-w-[280px]">
+
+          {/* Task list — big bold rows */}
+          <ul className="flex flex-col p-2 max-h-80 overflow-y-auto min-w-[360px] bg-surface-card">
             {tasks.length === 0 && (
-              <li className="text-ink-subtle text-[15px] py-1">No tasks.</li>
+              <li
+                className="py-4 px-3 font-semibold"
+                style={{ fontSize: 17, color: "var(--color-ink-muted)" }}
+              >
+                No tasks.
+              </li>
             )}
             {tasks.map((t) => (
               <li key={t.id}>
                 <Link
                   href={`/tasks/${t.id}` as Route}
-                  className="flex items-center justify-between gap-3 py-1 px-2 rounded-pill hover:bg-surface-soft transition-colors"
+                  className="aging-popover-row flex items-center justify-between gap-3 py-3 px-3 rounded-chip transition-colors"
                 >
-                  <span className="text-body-lg text-ink-strong truncate">{t.title}</span>
-                  <span className="text-[13px] text-ink-muted tabular-nums shrink-0">{t.ageDays}d</span>
+                  <span
+                    className="text-ink-strong font-bold truncate"
+                    style={{ fontSize: 17 }}
+                  >
+                    {t.title}
+                  </span>
+                  <span
+                    className="tabular-nums font-black shrink-0 rounded-pill px-2.5 py-1"
+                    style={{
+                      fontFamily: "var(--font-display), system-ui, sans-serif",
+                      fontSize: 16,
+                      color: c.deep,
+                      background: c.tint,
+                      border: `1px solid ${c.light}`,
+                    }}
+                  >
+                    {t.ageDays}d
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
-          <Popover.Arrow className="fill-white" />
+          <Popover.Arrow style={{ fill: c.deep }} width={14} height={8} />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
