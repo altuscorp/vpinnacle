@@ -981,6 +981,16 @@
   --kpi-neon-pending:      251 191 36;  /* amber-400 */
   --kpi-neon-not-started:  167 139 250; /* violet-400 */
 
+  /* Deep companions — used for label text on a white tile so each
+     channel stays colour-coded but high-contrast (the bright neon
+     above is reserved for the dot, sparkline, and shadow accents). */
+  --kpi-neon-total-deep:        3 105 161;   /* sky-700    */
+  --kpi-neon-need-help-deep:    153 27 27;   /* red-800    */
+  --kpi-neon-not-approved-deep: 157 23 77;   /* pink-800   */
+  --kpi-neon-done-deep:         63 98 18;    /* lime-800   */
+  --kpi-neon-pending-deep:      146 64 14;   /* amber-800  */
+  --kpi-neon-not-started-deep:  91 33 182;   /* violet-800 */
+
   /* VPinnacle brand cyan — primary accent across the dashboard surface.
      RGB triplets so they compose with rgba()/color-mix() the same way
      the neon palette does. */
@@ -1042,26 +1052,21 @@
   z-index: 1;
 }
 
-/* The glass tile shell. Light glass on the warm-white Aurora substrate
-   — high backdrop-blur so the Aurora colour shows through but the
-   tile reads as a distinct frosted-glass surface. Inherits its
-   --kpi-neon RGB triplet from inline style; the chromatic rim, inner
-   glow, and sparkline colour all consume it. */
+/* The KPI tile shell. Near-opaque white with a faint warm tint —
+   readability over Aurora is non-negotiable, so the surface is solid
+   enough that no gradient stripes bleed through and wash out small
+   text. Inherits its --kpi-neon RGB triplet from inline style; the
+   chromatic rim, inner glow, and sparkline colour all consume it. */
 @utility kpi-glass-tile {
   position: relative;
   border-radius: 20px;
   background:
-    linear-gradient(135deg,
-      rgba(255, 255, 255, 0.72) 0%,
-      rgba(255, 255, 255, 0.48) 100%);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.04),
-    0 16px 40px -16px rgba(15, 23, 42, 0.12),
-    0 4px 12px -4px rgba(15, 23, 42, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 16px 40px -16px rgba(15, 23, 42, 0.18),
+    0 4px 12px -4px rgba(15, 23, 42, 0.08);
   overflow: hidden;
   transition: transform 320ms cubic-bezier(0.2, 0.7, 0.3, 1),
               box-shadow 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -1201,9 +1206,10 @@
   }
 }
 
-/* ---------- Liasoning nav dropdown ----------
+/* ---------- Liasoning nav modal ----------
  * Used by components/layout/liasoning-nav-pill.tsx.
- * Stagger entry, click-time radial pulse, hover accent slide.
+ * Blurred-backdrop Radix Dialog with large dashboard cards.
+ * Stagger entry, click-time radial pulse, hover accent ribbon.
  */
 
 @keyframes liasoningItemIn {
@@ -1224,123 +1230,247 @@
   }
   100% {
     opacity: 0;
-    transform: scale(20);
+    transform: scale(30);
   }
 }
 
-.liasoning-item {
+@keyframes liasoningOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes liasoningContentIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.liasoning-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  animation: liasoningOverlayIn 220ms ease-out forwards;
+}
+
+.liasoning-dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  width: calc(100% - 32px);
+  max-width: 920px;
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  padding: 32px 28px 28px;
+  border-radius: 20px;
+  background: var(--color-surface-card, #ffffff);
+  border: 1px solid var(--color-hairline-strong);
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.25);
+  animation: liasoningContentIn 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.liasoning-dialog-eyebrow {
+  /* Inherits base from .liasoning-header-label; this just lets us target it */
+  display: inline-block;
+}
+
+.liasoning-dialog-title {
+  display: block;
+  margin: 6px 0 2px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-ink-strong);
+}
+
+.liasoning-dialog-subtitle {
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+  margin: 0 0 4px;
+}
+
+.liasoning-dialog-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.liasoning-dialog-close:hover,
+.liasoning-dialog-close:focus-visible {
+  background-color: rgba(15, 23, 42, 0.06);
+  color: var(--color-ink-strong);
+  outline: none;
+}
+
+.liasoning-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+@media (max-width: 720px) {
+  .liasoning-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.liasoning-card {
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 36px 1fr 16px;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px 10px 16px;
-  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--color-hairline);
+  background: #ffffff;
   color: var(--color-ink-strong);
   text-decoration: none;
   cursor: pointer;
   /* Stagger entry — index sets --i inline */
   opacity: 0;
-  animation: liasoningItemIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: calc(var(--i, 0) * 60ms + 40ms);
-  transition: background-color 180ms ease, transform 180ms ease;
+  animation: liasoningItemIn 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 60ms);
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease;
 }
 
-.liasoning-item::before {
+.liasoning-card::before {
   content: "";
   position: absolute;
-  inset: 6px auto 6px 4px;
-  width: 3px;
-  border-radius: 2px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
   background: var(--liasoning-accent, transparent);
-  transform: translateX(-120%);
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms ease;
 }
 
-.liasoning-item:hover,
-.liasoning-item:focus-visible {
-  background-color: color-mix(in oklab, var(--liasoning-accent, transparent) 9%, transparent);
+.liasoning-card:hover,
+.liasoning-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--liasoning-accent, transparent) 28%, var(--color-hairline));
+  box-shadow: 0 16px 30px -12px color-mix(in oklab, var(--liasoning-accent, transparent) 50%, transparent);
   outline: none;
 }
 
-.liasoning-item:hover::before,
-.liasoning-item:focus-visible::before {
-  transform: translateX(0);
+.liasoning-card:hover::before,
+.liasoning-card:focus-visible::before {
+  transform: scaleX(1);
 }
 
-.liasoning-item-icon {
+.liasoning-card-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
   background: color-mix(in oklab, var(--liasoning-accent, transparent) 14%, transparent);
   color: var(--liasoning-accent, currentColor);
-  transition: transform 180ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  transition: background-color 220ms ease;
 }
 
-.liasoning-item:hover .liasoning-item-icon,
-.liasoning-item:focus-visible .liasoning-item-icon {
-  transform: translateY(-1px);
+.liasoning-card:hover .liasoning-card-icon,
+.liasoning-card:focus-visible .liasoning-card-icon {
   background-color: color-mix(in oklab, var(--liasoning-accent, transparent) 22%, transparent);
-  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--liasoning-accent, transparent) 60%, transparent);
 }
 
-.liasoning-item-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.liasoning-item-label {
-  font-size: 13px;
+.liasoning-card-label {
+  display: block;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.005em;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   color: var(--color-ink-strong);
+  margin-top: 16px;
 }
 
-.liasoning-item-desc {
-  font-size: 11px;
-  line-height: 1.35;
+.liasoning-card-desc {
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--color-ink-soft);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
-.liasoning-item-arrow {
+.liasoning-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+.liasoning-card-cta {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--liasoning-accent, var(--color-ink-soft));
+  opacity: 0.75;
+}
+
+.liasoning-card-arrow {
   color: var(--color-ink-subtle);
   transform: translateX(0);
-  opacity: 0.6;
-  transition: transform 180ms ease, opacity 180ms ease, color 180ms ease;
+  opacity: 0.65;
+  transition: transform 220ms ease, opacity 220ms ease, color 220ms ease;
 }
 
-.liasoning-item:hover .liasoning-item-arrow,
-.liasoning-item:focus-visible .liasoning-item-arrow {
+.liasoning-card:hover .liasoning-card-arrow,
+.liasoning-card:focus-visible .liasoning-card-arrow {
   transform: translateX(4px);
   opacity: 1;
   color: var(--liasoning-accent, var(--color-ink-strong));
 }
 
-/* Radial click pulse — JS adds .is-launching to the item briefly, also sets
+/* Radial click pulse — JS adds .is-launching to the card briefly, also sets
  * --pulse-x / --pulse-y inline from the click point. */
-.liasoning-item.is-launching::after {
+.liasoning-card.is-launching::after {
   content: "";
   position: absolute;
   left: var(--pulse-x, 50%);
   top: var(--pulse-y, 50%);
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  margin-top: -4px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
   border-radius: 50%;
   background: var(--liasoning-accent, currentColor);
   pointer-events: none;
-  animation: liasoningPulse 360ms ease-out forwards;
+  animation: liasoningPulse 420ms ease-out forwards;
 }
 
-.liasoning-item.is-launching {
+.liasoning-card.is-launching {
   transform: scale(0.985);
 }
 
@@ -1348,7 +1478,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px 4px;
+  padding: 0;
 }
 
 .liasoning-header-label {
@@ -1362,7 +1492,7 @@
 .liasoning-header-strip {
   height: 2px;
   width: 100%;
-  margin: 4px 0 6px;
+  margin: 10px 0 0;
   background: linear-gradient(
     90deg,
     var(--color-altus-red) 0%,
@@ -1377,22 +1507,32 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .liasoning-item {
+  .liasoning-dialog-overlay {
+    animation: liasoningOverlayIn 80ms linear forwards;
+  }
+  .liasoning-dialog-content {
+    animation: none;
+  }
+  .liasoning-card {
     animation: none;
     opacity: 1;
     transform: none;
     transition: background-color 80ms linear;
   }
-  .liasoning-item::before,
-  .liasoning-item-icon,
-  .liasoning-item-arrow {
+  .liasoning-card:hover,
+  .liasoning-card:focus-visible {
+    transform: none;
+  }
+  .liasoning-card::before,
+  .liasoning-card-icon,
+  .liasoning-card-arrow {
     transition: none;
   }
-  .liasoning-item.is-launching::after {
+  .liasoning-card.is-launching::after {
     animation: none;
     display: none;
   }
-  .liasoning-item.is-launching {
+  .liasoning-card.is-launching {
     transform: none;
   }
 }

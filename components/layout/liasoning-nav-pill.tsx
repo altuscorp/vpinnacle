@@ -6,13 +6,10 @@ import {
   ClipboardList,
   ExternalLink,
   Receipt,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import * as Dialog from "@radix-ui/react-dialog";
 import { fireToast } from "@/lib/toast";
 import { useReducedMotion } from "motion/react";
 import type {
@@ -63,8 +60,8 @@ export function LiasoningNavPill({ links }: Props) {
   if (links.length === 0) return null;
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
         <button
           ref={triggerRef}
           type="button"
@@ -92,34 +89,51 @@ export function LiasoningNavPill({ links }: Props) {
           <BarChart3 size={16} strokeWidth={2.2} />
           <span className="max-md:hidden">Liasoning</span>
         </button>
-      </DropdownMenuTrigger>
+      </Dialog.Trigger>
 
-      <DropdownMenuContent
-        align="end"
-        sideOffset={10}
-        className="w-[320px] p-0"
-      >
-        <div className="liasoning-header">
-          <span className="liasoning-header-label">External Dashboards</span>
-        </div>
-        <div className="liasoning-header-strip" aria-hidden />
-        <div className="px-1 pb-1.5">
-          {links.map((link, idx) => (
-            <LiasoningItem
-              key={link.id}
-              link={link}
-              index={idx}
-              reduced={!!reduced}
-              onLaunched={() => setOpen(false)}
-            />
-          ))}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      <Dialog.Portal>
+        <Dialog.Overlay className="liasoning-dialog-overlay" />
+        <Dialog.Content className="liasoning-dialog-content">
+          <div className="liasoning-header">
+            <span className="liasoning-header-label liasoning-dialog-eyebrow">
+              External Dashboards
+            </span>
+          </div>
+          <Dialog.Title className="liasoning-dialog-title">
+            External Dashboards
+          </Dialog.Title>
+          <Dialog.Description className="liasoning-dialog-subtitle">
+            Quick access to operations dashboards
+          </Dialog.Description>
+          <div className="liasoning-header-strip" aria-hidden />
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              aria-label="Close"
+              className="liasoning-dialog-close"
+            >
+              <X size={16} strokeWidth={2.2} />
+            </button>
+          </Dialog.Close>
+
+          <div className="liasoning-cards-grid">
+            {links.map((link, idx) => (
+              <LiasoningCard
+                key={link.id}
+                link={link}
+                index={idx}
+                reduced={!!reduced}
+                onLaunched={() => setOpen(false)}
+              />
+            ))}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
-function LiasoningItem({
+function LiasoningCard({
   link,
   index,
   reduced,
@@ -148,7 +162,7 @@ function LiasoningItem({
     if (timerRef.current !== null) return;
 
     // Open synchronously inside the user gesture so popup blockers
-    // don't de-trust the call.  The pulse animates after, independently.
+    // don't de-trust the call. The pulse animates after, independently.
     window.open(link.url, "_blank", "noopener,noreferrer");
     fireToast({ message: `Opening ${link.label}…` });
 
@@ -169,7 +183,7 @@ function LiasoningItem({
       const stillMounted = ref.current;
       if (stillMounted) stillMounted.classList.remove("is-launching");
       onLaunched();
-    }, 220);
+    }, 240);
   };
 
   return (
@@ -178,7 +192,7 @@ function LiasoningItem({
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="liasoning-item"
+      className="liasoning-card"
       style={
         {
           "--liasoning-accent": accent,
@@ -187,14 +201,19 @@ function LiasoningItem({
       }
       onClick={handleClick}
     >
-      <span className="liasoning-item-icon" aria-hidden>
-        <Icon size={18} strokeWidth={2} />
+      <span className="liasoning-card-icon" aria-hidden>
+        <Icon size={26} strokeWidth={2} />
       </span>
-      <span className="liasoning-item-text">
-        <span className="liasoning-item-label">{link.label}</span>
-        <span className="liasoning-item-desc">{link.description}</span>
+      <span className="liasoning-card-label">{link.label}</span>
+      <span className="liasoning-card-desc">{link.description}</span>
+      <span className="liasoning-card-footer">
+        <span className="liasoning-card-cta">Open in new tab</span>
+        <ExternalLink
+          size={16}
+          className="liasoning-card-arrow"
+          aria-hidden
+        />
       </span>
-      <ExternalLink size={14} className="liasoning-item-arrow" aria-hidden />
     </a>
   );
 }
