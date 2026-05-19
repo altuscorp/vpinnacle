@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { fireToast } from "@/lib/toast";
-import { useReducedMotion } from "@/lib/motion-utils";
+import { useReducedMotion } from "motion/react";
 import type {
   DashboardAccent,
   DashboardIconName,
