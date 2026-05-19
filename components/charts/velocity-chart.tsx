@@ -38,9 +38,11 @@ export function VelocityChart({ data }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  const height = 380;
-  const padL = 56;
-  const padR = 96; // room for end-of-line labels
+  const isNarrow = width < 640;
+  const height = isNarrow ? 320 : 380;
+  const padL = isNarrow ? 40 : 56;
+  // No end-of-line labels on narrow screens → reclaim the right padding.
+  const padR = isNarrow ? 20 : 96;
   const padT = 32;
   const padB = 52;
 
@@ -77,11 +79,19 @@ export function VelocityChart({ data }: Props) {
     y: yAt(v),
   }));
 
-  // X-axis tick density — every Nth week so labels don't crowd.
-  const stride = Math.ceil(data.length / 8);
+  // X-axis tick density — adapts to viewport. On narrow screens each
+  // "MMM d" label needs ~64px to read; we divide width by that to pick
+  // a stride that keeps labels from overlapping.
+  const maxTicks = Math.max(2, Math.floor(innerW / 70));
+  const stride = Math.max(1, Math.ceil(data.length / maxTicks));
   const xTicks = data
     .map((d, i) => ({ d, i }))
     .filter(({ i }) => i % stride === 0 || i === data.length - 1);
+
+  // End-of-line "New" / "Finished" pinned labels need ~70px of right
+  // padding (padR). On narrow screens we drop the text and keep just
+  // the dot — the tooltip on tap still shows the channel.
+  const showEndLabels = width >= 640;
 
   const lastIdx = data.length - 1;
   const lastCreated = createdPoints[lastIdx];
@@ -200,7 +210,9 @@ export function VelocityChart({ data }: Props) {
           strokeLinejoin="round"
         />
 
-        {/* End-of-line labels — color-coded so the legend lives ON the chart */}
+        {/* End-of-line labels — color-coded so the legend lives ON the chart.
+            Text labels drop out below 640px viewport (mobile); the dot
+            stays so the user can still read the latest data point. */}
         {lastCreated && (
           <g>
             <circle
@@ -211,18 +223,20 @@ export function VelocityChart({ data }: Props) {
               stroke="#ffffff"
               strokeWidth={2.5}
             />
-            <text
-              x={lastCreated.x + 12}
-              y={lastCreated.y + 5}
-              style={{
-                fontFamily: "var(--font-display), system-ui, sans-serif",
-                fontSize: 14,
-                fontWeight: 800,
-                fill: "var(--color-blue-deep)",
-              }}
-            >
-              New
-            </text>
+            {showEndLabels && (
+              <text
+                x={lastCreated.x + 12}
+                y={lastCreated.y + 5}
+                style={{
+                  fontFamily: "var(--font-display), system-ui, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  fill: "var(--color-blue-deep)",
+                }}
+              >
+                New
+              </text>
+            )}
           </g>
         )}
         {lastCompleted && (
@@ -235,18 +249,20 @@ export function VelocityChart({ data }: Props) {
               stroke="#ffffff"
               strokeWidth={2.5}
             />
-            <text
-              x={lastCompleted.x + 12}
-              y={lastCompleted.y + 5}
-              style={{
-                fontFamily: "var(--font-display), system-ui, sans-serif",
-                fontSize: 14,
-                fontWeight: 800,
-                fill: "var(--color-green-deep)",
-              }}
-            >
-              Finished
-            </text>
+            {showEndLabels && (
+              <text
+                x={lastCompleted.x + 12}
+                y={lastCompleted.y + 5}
+                style={{
+                  fontFamily: "var(--font-display), system-ui, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  fill: "var(--color-green-deep)",
+                }}
+              >
+                Finished
+              </text>
+            )}
           </g>
         )}
 

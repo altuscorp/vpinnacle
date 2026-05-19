@@ -345,19 +345,19 @@ export function FilterBar({
             className="inline-flex items-center gap-2 text-cta text-white px-6 py-3 rounded-chip transition-transform disabled:opacity-60"
             style={{
               background:
-                "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
-              boxShadow: "0 6px 16px rgba(225, 29, 42, 0.28)",
+                "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
+              boxShadow: "0 6px 16px rgba(34, 181, 227, 0.32)",
             }}
             onMouseEnter={(e) => {
               if (isPending) return;
               e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.boxShadow =
-                "0 10px 24px rgba(225, 29, 42, 0.38)";
+                "0 10px 24px rgba(34, 181, 227, 0.42)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(225, 29, 42, 0.28)";
+                "0 6px 16px rgba(34, 181, 227, 0.32)";
             }}
           >
             {isPending ? "Applying…" : "Apply Filter"}

@@ -99,15 +99,14 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
               <Dialog.Trigger asChild>
                 <button
                   type="button"
-                  className="group relative inline-flex items-center gap-2 rounded-full text-white font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  className="group relative inline-flex items-center gap-2 rounded-full text-white font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/60 py-2 pr-3.5 pl-3 max-md:gap-0 max-md:size-10 max-md:p-0 max-md:justify-center"
                   style={{
-                    padding: "8px 14px 8px 12px",
                     fontSize: 14,
                     letterSpacing: "0.005em",
                     background:
-                      "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
+                      "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
                     boxShadow:
-                      "0 4px 14px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)",
+                      "0 4px 14px rgba(34, 181, 227, 0.45), inset 0 0 0 1px rgba(255,255,255,0.22)",
                     transition:
                       "transform 180ms ease, box-shadow 220ms ease, filter 180ms ease",
                     animation:
@@ -117,21 +116,21 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "scale(1.04)";
                     e.currentTarget.style.boxShadow =
-                      "0 10px 28px rgba(225, 29, 42, 0.6), 0 0 0 6px rgba(225, 29, 42, 0.12), inset 0 0 0 1px rgba(255,255,255,0.28)";
+                      "0 10px 28px rgba(34, 181, 227, 0.6), 0 0 0 6px rgba(34, 181, 227, 0.14), inset 0 0 0 1px rgba(255,255,255,0.32)";
                     e.currentTarget.style.filter = "brightness(1.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "";
                     e.currentTarget.style.boxShadow =
-                      "0 4px 14px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)";
+                      "0 4px 14px rgba(34, 181, 227, 0.45), inset 0 0 0 1px rgba(255,255,255,0.22)";
                     e.currentTarget.style.filter = "";
                   }}
                 >
                   <Plus size={15} strokeWidth={2.6} />
-                  <span>New task</span>
+                  <span className="max-md:sr-only">New task</span>
                   <kbd
                     aria-hidden
-                    className="ml-1 inline-flex items-center justify-center font-mono"
+                    className="ml-1 inline-flex items-center justify-center font-mono max-md:hidden"
                     style={{
                       minWidth: 18,
                       height: 18,
@@ -180,11 +179,11 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
               padding: "10px 12px",
               borderRadius: 12,
               background:
-                "linear-gradient(135deg, #ffffff 0%, #FFF7F8 100%)",
+                "linear-gradient(135deg, #ffffff 0%, #F0FBFF 100%)",
               color: "#0F172A",
               boxShadow:
-                "0 18px 36px -10px rgba(225, 29, 42, 0.35), 0 4px 12px rgba(15, 23, 42, 0.10)",
-              border: "1px solid rgba(225, 29, 42, 0.18)",
+                "0 18px 36px -10px rgba(34, 181, 227, 0.38), 0 4px 12px rgba(15, 23, 42, 0.10)",
+              border: "1px solid rgba(34, 181, 227, 0.22)",
               animation:
                 "hintBalloonIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both",
               fontSize: 14,
@@ -202,15 +201,15 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
                 width: 12,
                 height: 12,
                 background:
-                  "linear-gradient(135deg, #ffffff 0%, #FFF7F8 100%)",
-                borderTop: "1px solid rgba(225, 29, 42, 0.18)",
-                borderLeft: "1px solid rgba(225, 29, 42, 0.18)",
+                  "linear-gradient(135deg, #ffffff 0%, #F0FBFF 100%)",
+                borderTop: "1px solid rgba(34, 181, 227, 0.22)",
+                borderLeft: "1px solid rgba(34, 181, 227, 0.22)",
                 transform: "rotate(45deg)",
               }}
             />
             <span className="block font-semibold" style={{ color: "#0F172A" }}>
               Start by creating your first task
-              <span style={{ color: "var(--color-altus-red)" }}> →</span>
+              <span style={{ color: "rgb(14, 165, 233)" }}> →</span>
             </span>
             <span
               className="block mt-0.5"
