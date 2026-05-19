@@ -3,14 +3,22 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, ListTodo, Archive, Inbox } from "lucide-react";
 import type { Route } from "next";
 import { MainNavPill } from "./main-nav-pill";
+import { LiasoningNavPill } from "./liasoning-nav-pill";
+import type { VisibleDashboard } from "@/lib/external-dashboards";
 
 interface Props {
   activeTasks: number;
   archivedTasks: number;
   inboxUnread: number;
+  liasoningLinks: VisibleDashboard[];
 }
 
-export function MainNav({ activeTasks, archivedTasks, inboxUnread }: Props) {
+export function MainNav({
+  activeTasks,
+  archivedTasks,
+  inboxUnread,
+  liasoningLinks,
+}: Props) {
   const pathname = usePathname();
 
   function isActive(href: string): boolean {
@@ -50,6 +58,7 @@ export function MainNav({ activeTasks, archivedTasks, inboxUnread }: Props) {
         active={isActive("/inbox")}
         badge={inboxUnread > 0 ? inboxUnread : undefined}
       />
+      <LiasoningNavPill links={liasoningLinks} />
     </nav>
   );
 }
