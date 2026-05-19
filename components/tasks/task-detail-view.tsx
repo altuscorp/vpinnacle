@@ -1,0 +1,463 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { format, formatDistanceToNow } from "date-fns";
+import { Building2, Clock, CheckCircle2, History, Flag } from "lucide-react";
+import { TaskDetail } from "./task-detail";
+import { TaskEditForm } from "./task-edit-form";
+import { AuditFeed } from "./audit-feed";
+import { ActionRail } from "./action-rail";
+import { CommentInput } from "./comment-input";
+import type { TaskDetail as TaskDetailModel } from "@/lib/queries/tasks";
+import type { AuditFeedRow } from "@/lib/queries/audit";
+import type { TaskStatus } from "@/db/enums";
+
+interface Props {
+  task: TaskDetailModel;
+  canEdit: boolean;
+  canApproveTask: boolean;
+  canReassignTask: boolean;
+  canTransferTaskExternal: boolean;
+  canCancelTask: boolean;
+  canCommentOnTask: boolean;
+  events: AuditFeedRow[];
+  employees: { id: string; name: string }[];
+  /** Current user — drives the comment composer avatar.  Optional so the
+   *  page route can defer fetching it; falls back to "You". */
+  me?: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    department: string | null;
+    isAdmin: boolean;
+  };
+  /** Admin-overridable status labels (forwarded to AuditFeed). The hero
+   *  status pill keeps its internal STATUS_TONE map for now; full rewiring
+   *  is M5.2 follow-up work. */
+  statusLabels?: Record<TaskStatus, string>;
+}
+
+/** Status → tone mapping shared by the pill + meta UI. */
+const STATUS_TONE: Record<
+  TaskStatus,
+  { label: string; rgb: string; ink: string; bg: string; live: boolean }
+> = {
+  not_started: {
+    label: "Not Started",
+    rgb: "245, 158, 11",
+    ink: "var(--color-amber-deep)",
+    bg: "var(--color-amber-bg)",
+    live: false,
+  },
+  initiated: {
+    label: "Initiated",
+    rgb: "59, 130, 246",
+    ink: "var(--color-blue-deep)",
+    bg: "var(--color-blue-bg)",
+    live: true,
+  },
+  follow_up: {
+    label: "Follow Up",
+    rgb: "245, 158, 11",
+    ink: "var(--color-amber-deep)",
+    bg: "var(--color-amber-bg)",
+    live: true,
+  },
+  need_help: {
+    label: "Need Help",
+    rgb: "225, 29, 42",
+    ink: "var(--color-red-deep)",
+    bg: "var(--color-red-bg)",
+    live: false,
+  },
+  done: {
+    label: "Done · awaiting approval",
+    rgb: "34, 197, 94",
+    ink: "var(--color-green-deep)",
+    bg: "var(--color-green-bg)",
+    live: true,
+  },
+  approved: {
+    label: "Approved",
+    rgb: "34, 197, 94",
+    ink: "var(--color-green-deep)",
+    bg: "var(--color-green-bg)",
+    live: false,
+  },
+  not_approved: {
+    label: "Not Approved",
+    rgb: "225, 29, 42",
+    ink: "var(--color-red-deep)",
+    bg: "var(--color-red-bg)",
+    live: false,
+  },
+  cancelled: {
+    label: "Cancelled",
+    rgb: "244, 63, 94",
+    ink: "var(--color-rose-deep)",
+    bg: "var(--color-rose-bg)",
+    live: false,
+  },
+  transferred: {
+    label: "Transferred",
+    rgb: "168, 85, 247",
+    ink: "var(--color-purple-deep)",
+    bg: "var(--color-purple-bg)",
+    live: false,
+  },
+};
+
+const PRIORITY_LABEL_SHORT: Record<string, string> = {
+  imp_urgent: "Urgent · Important",
+  imp_not_urgent: "Important",
+  not_imp_urgent: "Urgent",
+  not_imp_not_urgent: "Routine",
+};
+
+/**
+ * The showcase task-detail wrapper.
+ *
+ * Two-column editorial layout (~62% / ~38%) with a sticky right rail
+ * containing three stacked sections — Status & meta, Action rail, Audit
+ * feed timeline.  Below 1024px the rail collapses below the main column.
+ *
+ * - Hash-driven dialogs (#approve / #reassign / #transfer / #cancel)
+ *   from the row-action menu (Wave 2) are preserved.
+ * - Read ↔ edit toggle uses motion/AnimatePresence with mode="wait".
+ * - A soft radial wash sits behind the right rail; readability stays first.
+ */
+export function TaskDetailView({
+  task,
+  canEdit,
+  canApproveTask,
+  canReassignTask,
+  canTransferTaskExternal,
+  canCancelTask,
+  canCommentOnTask,
+  events,
+  employees,
+  me,
+  statusLabels,
+}: Props) {
+  const [editing, setEditing] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const expectedUpdatedAt = task.updatedAt.toISOString();
+
+  // Hash-driven dialog open — preserves the row-action menu deep-links.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    let opened = false;
+    if (hash === "#approve" && canApproveTask) {
+      setApproveOpen(true);
+      opened = true;
+    } else if (hash === "#reassign" && canReassignTask) {
+      setReassignOpen(true);
+      opened = true;
+    } else if (hash === "#transfer" && canTransferTaskExternal) {
+      setTransferOpen(true);
+      opened = true;
+    } else if (hash === "#cancel" && canCancelTask) {
+      setCancelOpen(true);
+      opened = true;
+    }
+    if (opened) {
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const tone = STATUS_TONE[task.status];
+  // Viewer's role on this task — drives the banner inside ActionRail.
+  const myRole: "doer" | "initiator" | "both" | null = useMemo(() => {
+    if (!me) return null;
+    const isDoer = task.doerId === me.id;
+    const isInitiator = task.initiatorId === me.id;
+    if (isDoer && isInitiator) return "both";
+    if (isDoer) return "doer";
+    if (isInitiator) return "initiator";
+    return null;
+  }, [me, task.doerId, task.initiatorId]);
+
+  const composerMe = useMemo(
+    () => ({
+      name: me?.name ?? "You",
+      avatarUrl: me?.avatarUrl ?? null,
+    }),
+    [me?.name, me?.avatarUrl],
+  );
+
+  const anyAction =
+    canEdit ||
+    canApproveTask ||
+    canReassignTask ||
+    canTransferTaskExternal ||
+    canCancelTask;
+
+  // Approval timestamp surfaced only when the task is approved/declined.
+  const approvedRelative =
+    task.status === "approved" || task.status === "not_approved"
+      ? formatDistanceToNow(task.updatedAt, { addSuffix: true })
+      : null;
+
+  return (
+    <div className="relative">
+      {/* Soft radial wash sitting behind the right rail.  Anchored to the
+          top-right corner of the layout container so it reads as ambient
+          rather than busy. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 38% 60% at 92% 10%, rgba(225, 29, 42, 0.06), transparent 65%), radial-gradient(ellipse 30% 50% at 105% 60%, rgba(168, 85, 247, 0.06), transparent 65%)",
+        }}
+      />
+
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-10 max-lg:grid-cols-1 max-lg:gap-6">
+        {/* LEFT COLUMN — editorial document */}
+        <div className="min-w-0">
+          {/* Edit button hovering top-right of the left column */}
+          {canEdit && !editing && (
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[14px] font-semibold text-ink-soft border border-hairline bg-white/70 hover:bg-white hover:border-hairline-strong transition-all"
+              >
+                Edit task →
+              </button>
+            </div>
+          )}
+
+          <AnimatePresence mode="wait" initial={false}>
+            {editing ? (
+              <motion.div
+                key="edit"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 8 }}
+                transition={{
+                  duration: 0.28,
+                  ease: [0.2, 0.7, 0.3, 1],
+                }}
+                className="rounded-section border border-hairline bg-surface-card p-6"
+                style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
+              >
+                <div className="flex items-center justify-between mb-5">
+                  <h1
+                    className="text-ink-strong"
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontStyle: "italic",
+                      fontWeight: 500,
+                      fontSize: 32,
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Edit task
+                  </h1>
+                  <span className="text-[12.5px] text-ink-subtle uppercase tracking-[0.1em] font-bold">
+                    Editing
+                  </span>
+                </div>
+                <TaskEditForm
+                  taskId={task.id}
+                  initial={{
+                    title: task.title,
+                    description: task.description,
+                    subject: task.subject,
+                    notes: task.notes,
+                    priority: task.priority,
+                    dueAt: task.dueAt,
+                  }}
+                  expectedUpdatedAt={expectedUpdatedAt}
+                  onCancel={() => setEditing(false)}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="read"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{
+                  duration: 0.28,
+                  ease: [0.2, 0.7, 0.3, 1],
+                }}
+              >
+                <TaskDetail task={task} />
+
+                {/* Comment composer — part of the editorial document, NOT
+                    a glass card.  Only shown when the user is a participant. */}
+                {canCommentOnTask && (
+                  <CommentInput taskId={task.id} me={composerMe} />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* RIGHT RAIL — sticky, three stacked sections */}
+        <aside className="max-lg:order-first">
+          <div
+            className="lg:sticky lg:top-24 flex flex-col gap-4"
+            style={{ scrollMarginTop: "6rem" }}
+          >
+            {/* (1) Status + meta */}
+            <section
+              className="rounded-section border border-hairline bg-surface-card p-5"
+              style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
+            >
+              <h2 className="text-[12px] uppercase tracking-[0.12em] text-ink-subtle font-bold mb-3">
+                Status
+              </h2>
+              <StatusPill status={task.status} />
+              <div className="mt-5 pt-4 border-t border-hairline grid grid-cols-1 gap-3">
+                <MetaRow
+                  icon={<Clock size={13} strokeWidth={2.4} />}
+                  label="Created"
+                  value={`${formatDistanceToNow(task.createdAt, { addSuffix: true })}`}
+                  title={format(task.createdAt, "MMM d, yyyy 'at' h:mm a")}
+                />
+                <MetaRow
+                  icon={<History size={13} strokeWidth={2.4} />}
+                  label="Updated"
+                  value={formatDistanceToNow(task.updatedAt, { addSuffix: true })}
+                  title={format(task.updatedAt, "MMM d, yyyy 'at' h:mm a")}
+                />
+                <MetaRow
+                  icon={<CheckCircle2 size={13} strokeWidth={2.4} />}
+                  label="Approved"
+                  value={approvedRelative ?? "—"}
+                  emphasized={!!approvedRelative}
+                />
+                {me?.department && (
+                  <MetaRow
+                    icon={<Building2 size={13} strokeWidth={2.4} />}
+                    label="Department"
+                    value={me.department}
+                  />
+                )}
+                <MetaRow
+                  icon={<Flag size={13} strokeWidth={2.4} />}
+                  label="Priority"
+                  value={PRIORITY_LABEL_SHORT[task.priority] ?? task.priority}
+                />
+              </div>
+            </section>
+
+            {/* (2) Action rail */}
+            {anyAction && (
+              <section
+                className="rounded-section border border-hairline bg-surface-card"
+                style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
+              >
+                <ActionRail
+                  taskId={task.id}
+                  expectedUpdatedAt={expectedUpdatedAt}
+                  currentDoerId={task.doerId}
+                  employees={employees}
+                  canEdit={canEdit && !editing}
+                  canApproveTask={canApproveTask}
+                  canReassignTask={canReassignTask}
+                  canTransferTaskExternal={canTransferTaskExternal}
+                  canCancelTask={canCancelTask}
+                  onStartEdit={() => setEditing(true)}
+                  approveOpen={approveOpen}
+                  setApproveOpen={setApproveOpen}
+                  reassignOpen={reassignOpen}
+                  setReassignOpen={setReassignOpen}
+                  transferOpen={transferOpen}
+                  setTransferOpen={setTransferOpen}
+                  cancelOpen={cancelOpen}
+                  setCancelOpen={setCancelOpen}
+                  myRole={myRole}
+                  adminOverride={!myRole && !!me?.isAdmin}
+                />
+              </section>
+            )}
+
+            {/* (3) Audit feed timeline */}
+            <AuditFeed events={events} statusLabels={statusLabels} />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+
+  function StatusPill({ status }: { status: TaskStatus }) {
+    const t = STATUS_TONE[status];
+    return (
+      <div
+        key={status}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full"
+        style={
+          {
+            background: t.bg,
+            color: t.ink,
+            border: `1px solid rgba(${t.rgb}, 0.25)`,
+            fontFamily: "var(--font-sans)",
+            fontSize: 14,
+            fontWeight: 700,
+            letterSpacing: "0.01em",
+            // `--pill-tone-rgb` drives the @keyframes statusPulse glow.
+            ["--pill-tone-rgb" as unknown as string]: t.rgb,
+            animation: t.live
+              ? "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1, statusPulse 3s ease-in-out 600ms infinite"
+              : "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1",
+          } as React.CSSProperties
+        }
+      >
+        <span
+          aria-hidden
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{
+            background: `rgba(${t.rgb}, 1)`,
+            boxShadow: t.live
+              ? `0 0 0 3px rgba(${t.rgb}, 0.18)`
+              : undefined,
+          }}
+        />
+        {t.label}
+      </div>
+    );
+  }
+}
+
+function MetaRow({
+  icon,
+  label,
+  value,
+  title,
+  emphasized,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  title?: string;
+  emphasized?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline gap-3" title={title}>
+      <span className="inline-flex items-center gap-1.5 text-[12px] uppercase tracking-[0.10em] text-ink-subtle font-bold min-w-[100px]">
+        <span className="text-ink-subtle">{icon}</span>
+        {label}
+      </span>
+      <span
+        className={`text-[14px] tabular-nums ${emphasized ? "text-ink-strong font-semibold" : "text-ink-soft"}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}

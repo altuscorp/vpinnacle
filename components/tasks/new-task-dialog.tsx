@@ -1,0 +1,275 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import type { Route } from "next";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { Plus, X } from "lucide-react";
+import { NewTaskForm } from "./new-task-form";
+
+interface Props {
+  employees: { id: string; name: string }[];
+  /** Optional defaults — usually pre-fill initiator = current user. */
+  defaultInitiatorId?: string;
+}
+
+const HINT_STORAGE_KEY = "vp_seen_new_task_hint";
+
+export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  // First-time hint: surface if the user has never seen it before.
+  // Dismisses on dialog open, on explicit close, or after 10s.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const seen = window.localStorage.getItem(HINT_STORAGE_KEY);
+      if (!seen) {
+        // Delay a beat so the entry animation reads cleanly before the hint pops.
+        const t = window.setTimeout(() => setShowHint(true), 700);
+        return () => window.clearTimeout(t);
+      }
+    } catch {
+      // localStorage may be unavailable — silently skip the hint.
+    }
+  }, []);
+
+  const dismissHint = useCallback(() => {
+    if (!showHint) return;
+    setShowHint(false);
+    try {
+      window.localStorage.setItem(HINT_STORAGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, [showHint]);
+
+  // Auto-dismiss after 10s.
+  useEffect(() => {
+    if (!showHint) return;
+    const t = window.setTimeout(dismissHint, 10000);
+    return () => window.clearTimeout(t);
+  }, [showHint, dismissHint]);
+
+  // Keyboard shortcut: pressing "N" (no modifier) opens the dialog.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (open) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ignore when typing in form fields.
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        setOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (next) dismissHint();
+  }
+
+  function onSuccess(taskId: string) {
+    setOpen(false);
+    dismissHint();
+    router.push(`/tasks/${taskId}` as Route);
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
+      <div className="relative">
+        <Tooltip.Provider delayDuration={600}>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <Dialog.Trigger asChild>
+                <button
+                  type="button"
+                  className="group relative inline-flex items-center gap-2 rounded-full text-white font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  style={{
+                    padding: "8px 14px 8px 12px",
+                    fontSize: 14,
+                    letterSpacing: "0.005em",
+                    background:
+                      "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
+                    boxShadow:
+                      "0 4px 14px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)",
+                    transition:
+                      "transform 180ms ease, box-shadow 220ms ease, filter 180ms ease",
+                    animation:
+                      "newTaskIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both",
+                    willChange: "transform",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.04)";
+                    e.currentTarget.style.boxShadow =
+                      "0 10px 28px rgba(225, 29, 42, 0.6), 0 0 0 6px rgba(225, 29, 42, 0.12), inset 0 0 0 1px rgba(255,255,255,0.28)";
+                    e.currentTarget.style.filter = "brightness(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 14px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)";
+                    e.currentTarget.style.filter = "";
+                  }}
+                >
+                  <Plus size={15} strokeWidth={2.6} />
+                  <span>New task</span>
+                  <kbd
+                    aria-hidden
+                    className="ml-1 inline-flex items-center justify-center font-mono"
+                    style={{
+                      minWidth: 18,
+                      height: 18,
+                      padding: "0 5px",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      borderRadius: 5,
+                      color: "rgba(255,255,255,0.95)",
+                      background: "rgba(255,255,255,0.18)",
+                      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
+                      letterSpacing: 0,
+                    }}
+                  >
+                    N
+                  </kbd>
+                </button>
+              </Dialog.Trigger>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="bottom"
+                sideOffset={10}
+                className="z-[80] rounded-md px-3 py-2 text-[13px] shadow-lg"
+                style={{
+                  background: "#0F172A",
+                  color: "#ffffff",
+                  animation: "userMenuIn 140ms cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+              >
+                Create a new task <span style={{ opacity: 0.7 }}>· press N</span>
+                <Tooltip.Arrow style={{ fill: "#0F172A" }} />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
+
+        {showHint && (
+          <button
+            type="button"
+            onClick={dismissHint}
+            aria-label="Dismiss hint"
+            className="absolute right-0 top-full mt-3 z-40 text-left"
+            style={{
+              minWidth: 240,
+              maxWidth: 280,
+              padding: "10px 12px",
+              borderRadius: 12,
+              background:
+                "linear-gradient(135deg, #ffffff 0%, #FFF7F8 100%)",
+              color: "#0F172A",
+              boxShadow:
+                "0 18px 36px -10px rgba(225, 29, 42, 0.35), 0 4px 12px rgba(15, 23, 42, 0.10)",
+              border: "1px solid rgba(225, 29, 42, 0.18)",
+              animation:
+                "hintBalloonIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both",
+              fontSize: 14,
+              lineHeight: 1.45,
+              cursor: "pointer",
+            }}
+          >
+            {/* Balloon arrow */}
+            <span
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: -6,
+                right: 22,
+                width: 12,
+                height: 12,
+                background:
+                  "linear-gradient(135deg, #ffffff 0%, #FFF7F8 100%)",
+                borderTop: "1px solid rgba(225, 29, 42, 0.18)",
+                borderLeft: "1px solid rgba(225, 29, 42, 0.18)",
+                transform: "rotate(45deg)",
+              }}
+            />
+            <span className="block font-semibold" style={{ color: "#0F172A" }}>
+              Start by creating your first task
+              <span style={{ color: "var(--color-altus-red)" }}> →</span>
+            </span>
+            <span
+              className="block mt-0.5"
+              style={{ color: "#64748B", fontSize: 13 }}
+            >
+              Click here or press <kbd
+                style={{
+                  display: "inline-block",
+                  padding: "0 4px",
+                  borderRadius: 3,
+                  background: "rgba(15, 23, 42, 0.08)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: "#334155",
+                }}
+              >
+                N
+              </kbd> to begin.
+            </span>
+          </button>
+        )}
+      </div>
+
+      <Dialog.Portal>
+        <Dialog.Overlay
+          className="fixed inset-0 z-[60]"
+          style={{ background: "rgba(15, 23, 42, 0.45)", backdropFilter: "blur(4px)" }}
+        />
+        <Dialog.Content
+          className="fixed left-1/2 top-1/2 z-[70] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-section border border-hairline bg-surface-card p-6 shadow-xl"
+          style={{ maxHeight: "calc(100vh - 64px)", overflowY: "auto" }}
+        >
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <Dialog.Title className="text-display-md text-ink-strong">
+                New task
+              </Dialog.Title>
+              <Dialog.Description className="text-[15px] text-ink-subtle mt-1.5">
+                Quick-create. Press Esc to cancel.
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                aria-label="Close"
+                className="rounded-full p-1 hover:bg-surface-soft text-ink-subtle hover:text-ink-strong"
+              >
+                <X size={18} />
+              </button>
+            </Dialog.Close>
+          </div>
+          <NewTaskForm
+            employees={employees}
+            onSuccess={onSuccess}
+            defaults={{ initiatorId: defaultInitiatorId }}
+          />
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
