@@ -69,6 +69,7 @@ export function LiasoningNavPill({ links }: Props) {
           className={"nav-pill" + (open ? " nav-pill-active" : "")}
           onMouseMove={onMove}
           onMouseLeave={onLeave}
+          onClick={() => setOpen(true)}
           style={
             open
               ? {
