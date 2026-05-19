@@ -1189,3 +1189,199 @@
     animation: none;
   }
 }
+
+/* ---------- Liasoning nav dropdown ----------
+ * Used by components/layout/liasoning-nav-pill.tsx.
+ * Stagger entry, click-time radial pulse, hover accent slide.
+ */
+
+@keyframes liasoningItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes liasoningPulse {
+  0% {
+    opacity: 0.45;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(20);
+  }
+}
+
+.liasoning-item {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 36px 1fr 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 10px;
+  color: var(--color-ink-strong);
+  text-decoration: none;
+  cursor: pointer;
+  /* Stagger entry — index sets --i inline */
+  opacity: 0;
+  animation: liasoningItemIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 40ms);
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+
+.liasoning-item::before {
+  content: "";
+  position: absolute;
+  inset: 6px auto 6px 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--liasoning-accent, transparent);
+  transform: translateX(-120%);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liasoning-item:hover,
+.liasoning-item:focus-visible {
+  background-color: color-mix(in oklab, var(--liasoning-accent, transparent) 9%, transparent);
+  outline: none;
+}
+
+.liasoning-item:hover::before,
+.liasoning-item:focus-visible::before {
+  transform: translateX(0);
+}
+
+.liasoning-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--liasoning-accent, transparent) 14%, transparent);
+  color: var(--liasoning-accent, currentColor);
+  transition: transform 180ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.liasoning-item:hover .liasoning-item-icon,
+.liasoning-item:focus-visible .liasoning-item-icon {
+  transform: translateY(-1px);
+  background-color: color-mix(in oklab, var(--liasoning-accent, transparent) 22%, transparent);
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--liasoning-accent, transparent) 60%, transparent);
+}
+
+.liasoning-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.liasoning-item-label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--color-ink-strong);
+}
+
+.liasoning-item-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-ink-soft);
+  margin-top: 2px;
+}
+
+.liasoning-item-arrow {
+  color: var(--color-ink-subtle);
+  transform: translateX(0);
+  opacity: 0.6;
+  transition: transform 180ms ease, opacity 180ms ease, color 180ms ease;
+}
+
+.liasoning-item:hover .liasoning-item-arrow,
+.liasoning-item:focus-visible .liasoning-item-arrow {
+  transform: translateX(4px);
+  opacity: 1;
+  color: var(--liasoning-accent, var(--color-ink-strong));
+}
+
+/* Radial click pulse — JS adds .is-launching to the item briefly, also sets
+ * --pulse-x / --pulse-y inline from the click point. */
+.liasoning-item.is-launching::after {
+  content: "";
+  position: absolute;
+  left: var(--pulse-x, 50%);
+  top: var(--pulse-y, 50%);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--liasoning-accent, currentColor);
+  pointer-events: none;
+  animation: liasoningPulse 360ms ease-out forwards;
+}
+
+.liasoning-item.is-launching {
+  transform: scale(0.985);
+}
+
+.liasoning-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 4px;
+}
+
+.liasoning-header-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+}
+
+.liasoning-header-strip {
+  height: 2px;
+  width: 100%;
+  margin: 4px 0 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-altus-red) 0%,
+    var(--color-rose) 20%,
+    var(--color-purple) 40%,
+    var(--color-blue) 60%,
+    var(--color-green) 80%,
+    var(--color-amber) 100%
+  );
+  opacity: 0.7;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liasoning-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: background-color 80ms linear;
+  }
+  .liasoning-item::before,
+  .liasoning-item-icon,
+  .liasoning-item-arrow {
+    transition: none;
+  }
+  .liasoning-item.is-launching::after {
+    animation: none;
+    display: none;
+  }
+  .liasoning-item.is-launching {
+    transform: none;
+  }
+}
