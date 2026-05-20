@@ -71,6 +71,34 @@ const STATUS_TONE: Record<
     bg: "var(--color-red-bg)",
     live: false,
   },
+  need_info: {
+    label: "Need Info",
+    rgb: "59, 130, 246",
+    ink: "var(--color-blue-deep)",
+    bg: "var(--color-blue-bg)",
+    live: false,
+  },
+  follow_up_1: {
+    label: "Follow Up 1",
+    rgb: "245, 158, 11",
+    ink: "var(--color-amber-deep)",
+    bg: "var(--color-amber-bg)",
+    live: true,
+  },
+  follow_up_2: {
+    label: "Follow Up 2",
+    rgb: "245, 158, 11",
+    ink: "var(--color-amber-deep)",
+    bg: "var(--color-amber-bg)",
+    live: true,
+  },
+  follow_up_3: {
+    label: "Follow Up 3",
+    rgb: "225, 29, 42",
+    ink: "var(--color-red-deep)",
+    bg: "var(--color-red-bg)",
+    live: true,
+  },
   done: {
     label: "Done · awaiting approval",
     rgb: "34, 197, 94",
@@ -279,8 +307,12 @@ export function TaskDetailView({
                     notes: task.notes,
                     priority: task.priority,
                     dueAt: task.dueAt,
+                    tags: task.tags,
+                    approvalStatus: task.approvalStatus,
+                    revisedTargetDate: task.revisedTargetDate,
                   }}
                   expectedUpdatedAt={expectedUpdatedAt}
+                  isAdmin={me?.isAdmin ?? false}
                   onCancel={() => setEditing(false)}
                 />
               </motion.div>

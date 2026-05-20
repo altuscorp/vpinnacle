@@ -35,12 +35,15 @@ describe("canEditTaskFields", () => {
     expect(result).toBe(true);
   });
 
-  it("denies the doer (not creator, not initiator)", () => {
+  // Tier-3 (2026-05-20) — Manan's spec widened canEditTaskFields so the
+  // doer can edit their own task while it's pending. Previously the doer
+  // was denied unless they were also the creator or initiator.
+  it("allows the doer (Tier-3 spec widening)", () => {
     const result = canEditTaskFields({
       employee: { id: me, isAdmin: false },
       task: task({ doerId: me }),
     });
-    expect(result).toBe(false);
+    expect(result).toBe(true);
   });
 
   it("denies a stranger", () => {

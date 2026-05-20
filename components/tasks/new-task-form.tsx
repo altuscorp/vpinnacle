@@ -3,9 +3,15 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { ImagePlus, Link2, Plus, X, FileImage } from "lucide-react";
-import { TASK_PRIORITIES, PRIORITY_LABELS, type TaskPriority } from "@/db/enums";
+import { ImagePlus, Link2, Plus, X, FileImage, Check } from "lucide-react";
+import {
+  TASK_PRIORITIES,
+  PRIORITY_LABELS,
+  TASK_SUBJECTS,
+  type TaskPriority,
+} from "@/db/enums";
 import { createTask } from "@/app/(app)/tasks/actions";
+import { EmployeeAvatar } from "@/components/ui/employee-avatar";
 
 type EmployeeOption = { id: string; name: string };
 
@@ -41,11 +47,15 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
   const [description, setDesc] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [notes, setNotes] = React.useState("");
-  const [doerId, setDoerId] = React.useState(defaults?.doerId ?? "");
+  const [doerIds, setDoerIds] = React.useState<string[]>(
+    defaults?.doerId ? [defaults.doerId] : [],
+  );
   const [initiatorId, setInit] = React.useState(defaults?.initiatorId ?? "");
   const [priority, setPriority] = React.useState<TaskPriority>(
     defaults?.priority ?? DEFAULT_PRIORITY,
   );
+  const [tags, setTags] = React.useState<string[]>([]);
+  const [tagInput, setTagInput] = React.useState("");
   // Default due: 7 days out.
   const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const [dueAt, setDueAt] = React.useState(
@@ -105,8 +115,8 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!doerId || !initiatorId) {
-      setError("Doer and Initiator are required.");
+    if (doerIds.length === 0 || !initiatorId) {
+      setError("Pick at least one Doer and an Initiator.");
       return;
     }
     // The <input type="date"> gives YYYY-MM-DD; convert to ISO at noon UTC
@@ -122,24 +132,57 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         : "";
     const composedNotes = (notes + linksBlock).trim() || null;
 
+    // Commit any pending tag text the user hasn't pressed Enter on yet.
+    const pendingTag = tagInput.trim();
+    const finalTags =
+      pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags;
+
     startTransition(async () => {
       const result = await createTask({
         title,
-        doerId,
+        doerIds,                      // multi-doer fanout — N tasks if N doers
         initiatorId,
         priority,
         dueAt: dueIso,
         description: description || null,
         subject: subject || null,
         notes: composedNotes,
+        tags: finalTags.length > 0 ? finalTags : null,
       });
       if (!result.ok) {
         setError(result.error);
         return;
       }
+      // Single doer → land on the task's detail page. Multi-doer fanout →
+      // land on the filtered task list (showing the freshly-minted batch).
       if (onSuccess) onSuccess(result.id);
-      else router.push(`/tasks/${result.id}` as Route);
+      else if (result.ids.length === 1) {
+        router.push(`/tasks/${result.id}` as Route);
+      } else {
+        router.push("/tasks" as Route);
+      }
     });
+  }
+
+  function toggleDoer(id: string) {
+    setDoerIds((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
+    );
+  }
+
+  function commitTag() {
+    const t = tagInput.trim();
+    if (!t) return;
+    if (tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    setTags((prev) => [...prev, t]);
+    setTagInput("");
+  }
+
+  function removeTag(idx: number) {
+    setTags((prev) => prev.filter((_, i) => i !== idx));
   }
 
   return (
@@ -176,21 +219,16 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
             ))}
           </select>
         </Field>
-        <Field id="nt-doer" label="Doer" required>
-          <select
-            id="nt-doer"
-            required
-            value={doerId}
-            onChange={(e) => setDoerId(e.target.value)}
-            className="nt-input"
-          >
-            <option value="">Select an employee…</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.name}
-              </option>
-            ))}
-          </select>
+        <Field
+          id="nt-doer"
+          label={`Doer${doerIds.length > 1 ? ` · ${doerIds.length} selected` : ""}`}
+          required
+        >
+          <DoerMultiSelect
+            employees={employees}
+            selected={doerIds}
+            onToggle={toggleDoer}
+          />
         </Field>
         <Field id="nt-priority" label="Priority">
           <select
@@ -221,15 +259,19 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
       {/* Subject · Task Description · Initiator Notes — each full-width
           single column, stacked top-to-bottom per spec. */}
       <Field id="nt-subject" label="Subject">
-        <input
+        <select
           id="nt-subject"
-          type="text"
-          maxLength={120}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           className="nt-input"
-          placeholder="Optional category (e.g. KYC, Disbursement…)"
-        />
+        >
+          <option value="">Select a category…</option>
+          {TASK_SUBJECTS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       </Field>
 
       <Field id="nt-desc" label="Task Description">
@@ -251,6 +293,19 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           onChange={(e) => setNotes(e.target.value)}
           className="nt-input resize-y"
           placeholder="Notes only the team sees…"
+        />
+      </Field>
+
+      {/* Tags — free-form chips. Type a tag, hit Enter or comma to commit.
+          Stored as text[] on the task; each chip is searchable later. */}
+      <Field id="nt-tags" label={`Tags${tags.length > 0 ? ` · ${tags.length}` : ""}`}>
+        <TagsInput
+          id="nt-tags"
+          tags={tags}
+          input={tagInput}
+          onInputChange={setTagInput}
+          onCommit={commitTag}
+          onRemove={removeTag}
         />
       </Field>
 
@@ -311,6 +366,248 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Multi-select dropdown for Doer. Each pick adds a chip; submitting the
+ * form creates one task per selected doer (the action fans out server-side).
+ *
+ * Styled to read the same as the .nt-input single-line inputs above it so
+ * the row stays visually balanced.
+ */
+function DoerMultiSelect({
+  employees,
+  selected,
+  onToggle,
+}: {
+  employees: EmployeeOption[];
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const byId = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of employees) m.set(e.id, e.name);
+    return m;
+  }, [employees]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="nt-input flex items-center justify-between gap-2 text-left"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="flex flex-wrap items-center gap-1.5 min-h-[24px]">
+          {selected.length === 0 ? (
+            <span style={{ color: "var(--color-ink-subtle)" }}>
+              Pick one or more…
+            </span>
+          ) : (
+            selected.map((id) => {
+              const name = byId.get(id) ?? "Unknown";
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
+                  style={{
+                    background: "var(--vp-cyan-tint)",
+                    color: "rgb(var(--vp-cyan-deep))",
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                >
+                  <EmployeeAvatar name={name} size="sm" />
+                  {name}
+                  <span
+                    role="button"
+                    aria-label={`Remove ${name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggle(id);
+                    }}
+                    className="inline-flex items-center justify-center"
+                    style={{ width: 18, height: 18, borderRadius: 999 }}
+                  >
+                    <X size={12} strokeWidth={2.6} />
+                  </span>
+                </span>
+              );
+            })
+          )}
+        </span>
+        <span
+          aria-hidden
+          style={{
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 160ms ease",
+            color: "var(--color-ink-muted)",
+          }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          aria-multiselectable
+          className="absolute left-0 right-0 mt-2 z-50 max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
+          style={{
+            borderColor: "var(--color-hairline-strong)",
+            boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
+          }}
+        >
+          {employees.length === 0 ? (
+            <li
+              className="px-4 py-3 font-semibold"
+              style={{ fontSize: 14, color: "var(--color-ink-muted)" }}
+            >
+              No employees available.
+            </li>
+          ) : (
+            employees.map((emp) => {
+              const isSel = selected.includes(emp.id);
+              return (
+                <li
+                  key={emp.id}
+                  role="option"
+                  aria-selected={isSel}
+                  onClick={() => onToggle(emp.id)}
+                  className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors"
+                  style={{
+                    background: isSel ? "var(--vp-cyan-tint)" : "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSel)
+                      e.currentTarget.style.background =
+                        "var(--color-surface-soft)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSel) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <EmployeeAvatar name={emp.name} size="sm" />
+                  <span
+                    className="flex-1 font-semibold"
+                    style={{
+                      fontSize: 15,
+                      color: "var(--color-ink-strong)",
+                    }}
+                  >
+                    {emp.name}
+                  </span>
+                  {isSel && (
+                    <Check
+                      size={18}
+                      strokeWidth={2.6}
+                      style={{ color: "rgb(var(--vp-cyan-deep))" }}
+                    />
+                  )}
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Tag-chip input. Press Enter or comma to commit the pending text into a
+ * chip. Backspace on an empty input removes the last chip. Chips stored
+ * client-side in `tags: string[]` and shipped to the action.
+ */
+function TagsInput({
+  id,
+  tags,
+  input,
+  onInputChange,
+  onCommit,
+  onRemove,
+}: {
+  id: string;
+  tags: string[];
+  input: string;
+  onInputChange: (v: string) => void;
+  onCommit: () => void;
+  onRemove: (idx: number) => void;
+}) {
+  return (
+    <div
+      className="nt-input flex flex-wrap items-center gap-1.5"
+      style={{ padding: "10px 12px", minHeight: 56 }}
+      onClick={() => document.getElementById(id)?.focus()}
+    >
+      {tags.map((t, i) => (
+        <span
+          key={`${t}-${i}`}
+          className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
+          style={{
+            background: "var(--vp-cyan-tint)",
+            color: "rgb(var(--vp-cyan-deep))",
+            fontSize: 14,
+            fontWeight: 700,
+          }}
+        >
+          {t}
+          <span
+            role="button"
+            aria-label={`Remove tag ${t}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(i);
+            }}
+            className="inline-flex items-center justify-center"
+            style={{ width: 18, height: 18, borderRadius: 999 }}
+          >
+            <X size={12} strokeWidth={2.6} />
+          </span>
+        </span>
+      ))}
+      <input
+        id={id}
+        type="text"
+        value={input}
+        onChange={(e) => onInputChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            onCommit();
+          } else if (e.key === "Backspace" && input === "" && tags.length > 0) {
+            onRemove(tags.length - 1);
+          }
+        }}
+        placeholder={
+          tags.length === 0
+            ? "Type a tag and press Enter or comma to add…"
+            : "Add another tag…"
+        }
+        className="flex-1 min-w-[180px] bg-transparent outline-none"
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          color: "var(--color-ink-strong)",
+          border: "none",
+          padding: 0,
+        }}
+      />
+    </div>
   );
 }
 

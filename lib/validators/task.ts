@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TASK_PRIORITIES } from "@/db/enums";
+import { TASK_PRIORITIES, APPROVAL_STATUSES } from "@/db/enums";
 
 const uuid = z.string().guid("Must be a UUID");
 const isoDateToDate = z
@@ -7,16 +7,37 @@ const isoDateToDate = z
   .datetime({ message: "Must be an ISO-8601 timestamp" })
   .transform((s) => new Date(s));
 
-export const CreateTaskSchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(240),
-  doerId: uuid,
-  initiatorId: uuid,
-  priority: z.enum(TASK_PRIORITIES),
-  dueAt: isoDateToDate,
-  description: z.string().trim().max(8000).nullable().optional().default(null),
-  subject: z.string().trim().max(120).nullable().optional().default(null),
-  notes: z.string().trim().max(8000).nullable().optional().default(null),
-});
+/** Tier-3 (2026-05-20) — `doerIds` array enables fanout (one submit, N
+ *  tasks). Old callers + tests still pass `doerId` (single); the refine()
+ *  rule requires exactly one of the two. `tags` is the new free-form list. */
+export const CreateTaskSchema = z
+  .object({
+    title: z.string().trim().min(1, "Client name is required").max(240),
+    doerId: uuid.optional(),
+    doerIds: z.array(uuid).min(1, "Pick at least one Doer").max(50).optional(),
+    initiatorId: uuid,
+    priority: z.enum(TASK_PRIORITIES),
+    dueAt: isoDateToDate,
+    description: z
+      .string()
+      .trim()
+      .max(8000)
+      .nullable()
+      .optional()
+      .default(null),
+    subject: z.string().trim().max(120).nullable().optional().default(null),
+    notes: z.string().trim().max(8000).nullable().optional().default(null),
+    tags: z
+      .array(z.string().trim().min(1).max(40))
+      .max(20)
+      .nullable()
+      .optional()
+      .default(null),
+  })
+  .refine(
+    (v) => Boolean(v.doerId) !== Boolean(v.doerIds && v.doerIds.length > 0),
+    "Provide exactly one of doerId or doerIds",
+  );
 
 export type CreateTaskInput = z.input<typeof CreateTaskSchema>;
 export type CreateTaskParsed = z.output<typeof CreateTaskSchema>;
@@ -35,12 +56,34 @@ export const EditTaskFieldsSchema = z
     priority: z.enum(TASK_PRIORITIES).optional(),
     dueAt: isoDateToDate.optional(),
     notes: z.string().trim().max(8000).nullable().optional(),
+    tags: z
+      .array(z.string().trim().min(1).max(40))
+      .max(20)
+      .nullable()
+      .optional(),
   })
   .strict() // reject unknown keys
   .refine(
     (obj) => Object.keys(obj).length > 0,
     "At least one field must be provided",
   );
+
+/** Admin-only — set or clear the verdict on a task. Pair with status edits
+ *  if needed; the two columns are independent. */
+export const SetApprovalStatusSchema = z.object({
+  approvalStatus: z.enum(APPROVAL_STATUSES).nullable(),
+  note: z.string().trim().max(2000).optional(),
+});
+export type SetApprovalStatusInput = z.input<typeof SetApprovalStatusSchema>;
+export type SetApprovalStatusParsed = z.output<typeof SetApprovalStatusSchema>;
+
+/** Admin-only — record a revised target date without losing the original
+ *  due_at. Pass null to clear. */
+export const SetRevisedTargetDateSchema = z.object({
+  revisedTargetDate: isoDateToDate.nullable(),
+});
+export type SetRevisedTargetDateInput = z.input<typeof SetRevisedTargetDateSchema>;
+export type SetRevisedTargetDateParsed = z.output<typeof SetRevisedTargetDateSchema>;
 
 export type EditTaskFieldsInput = z.input<typeof EditTaskFieldsSchema>;
 export type EditTaskFieldsParsed = z.output<typeof EditTaskFieldsSchema>;

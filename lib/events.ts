@@ -41,6 +41,7 @@ export const EDITABLE_TASK_FIELDS = [
   "priority",
   "dueAt",
   "notes",
+  "tags", // Tier-3 — tracked in field_updated events the same way as the others.
 ] as const;
 
 export type EditableTaskField = (typeof EDITABLE_TASK_FIELDS)[number];

@@ -3,8 +3,20 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { TASK_PRIORITIES, PRIORITY_LABELS, type TaskPriority } from "@/db/enums";
-import { editTaskFields } from "@/app/(app)/tasks/actions";
+import { Plus, X } from "lucide-react";
+import {
+  TASK_PRIORITIES,
+  PRIORITY_LABELS,
+  TASK_SUBJECTS,
+  APPROVAL_STATUSES,
+  type TaskPriority,
+  type ApprovalStatus,
+} from "@/db/enums";
+import {
+  editTaskFields,
+  setTaskApprovalStatus,
+  setTaskRevisedTargetDate,
+} from "@/app/(app)/tasks/actions";
 import { fireToast } from "@/lib/toast";
 
 interface Props {
@@ -16,13 +28,26 @@ interface Props {
     notes: string | null;
     priority: TaskPriority;
     dueAt: Date;
+    // Tier-3 (2026-05-20) additions:
+    tags: string[] | null;
+    approvalStatus: ApprovalStatus | null;
+    revisedTargetDate: Date | null;
   };
   /** Used for the optimistic-lock — must be the row's current updated_at. */
   expectedUpdatedAt: string;
+  /** Admin-only fields (approval status + revised target date) gated on this. */
+  isAdmin: boolean;
   onCancel: () => void;
 }
 
-/** Pretty field with on-focus underline + soft shadow (auth-style). */
+const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
+  approved: "Approved",
+  not_approved: "Not Approved",
+  cancelled: "Cancelled",
+  transferred: "Transferred",
+};
+
+/** Pretty field with on-focus underline + soft shadow (cyan brand voice). */
 function FieldShell({
   label,
   htmlFor,
@@ -49,7 +74,7 @@ function FieldShell({
       >
         {label}
         {required && (
-          <span className="ml-1" style={{ color: "var(--color-altus-red)" }}>
+          <span className="ml-1" style={{ color: "rgb(14, 165, 233)" }}>
             *
           </span>
         )}
@@ -63,7 +88,7 @@ function FieldShell({
         className="block h-[1.5px] mt-px rounded-full"
         style={{
           background:
-            "linear-gradient(90deg, var(--color-altus-red), var(--color-rose), var(--color-purple))",
+            "linear-gradient(90deg, rgb(34, 181, 227), rgb(14, 165, 233))",
           transform: focused ? "scaleX(1)" : "scaleX(0)",
           transformOrigin: "left center",
           transition: "transform 380ms cubic-bezier(0.2, 0.7, 0.3, 1)",
@@ -77,6 +102,7 @@ export function TaskEditForm({
   taskId,
   initial,
   expectedUpdatedAt,
+  isAdmin,
   onCancel,
 }: Props) {
   const router = useRouter();
@@ -90,6 +116,19 @@ export function TaskEditForm({
   const [dueAt, setDueAt] = useState(
     initial.dueAt.toISOString().slice(0, 10),
   );
+  const [tags, setTags] = useState<string[]>(initial.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+
+  // Admin-only state.
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | "">(
+    initial.approvalStatus ?? "",
+  );
+  const [revisedTargetDate, setRevisedTargetDate] = useState(
+    initial.revisedTargetDate
+      ? initial.revisedTargetDate.toISOString().slice(0, 10)
+      : "",
+  );
+
   const [error, setError] = useState<string | null>(null);
 
   // Focus state per field — drives the underline animation.
@@ -99,14 +138,40 @@ export function TaskEditForm({
   const [fSubj, setFSubj] = useState(false);
   const [fDesc, setFDesc] = useState(false);
   const [fNotes, setFNotes] = useState(false);
+  const [fTags, setFTags] = useState(false);
+  const [fApproval, setFApproval] = useState(false);
+  const [fRevised, setFRevised] = useState(false);
+
+  function commitTag() {
+    const t = tagInput.trim();
+    if (!t || tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    setTags((prev) => [...prev, t]);
+    setTagInput("");
+  }
+
+  function removeTag(idx: number) {
+    setTags((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     const dueIso = new Date(`${dueAt}T12:00:00.000Z`).toISOString();
+    const pendingTag = tagInput.trim();
+    const finalTags =
+      pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags;
+
+    const initialApprovalStatus = initial.approvalStatus ?? "";
+    const initialRevisedIso = initial.revisedTargetDate
+      ? initial.revisedTargetDate.toISOString().slice(0, 10)
+      : "";
 
     startTransition(async () => {
+      // 1. Always run the editable-fields update (the most common path).
       const result = await editTaskFields(
         taskId,
         {
@@ -116,6 +181,7 @@ export function TaskEditForm({
           notes: notes === "" ? null : notes,
           priority,
           dueAt: dueIso,
+          tags: finalTags.length > 0 ? finalTags : null,
         },
         expectedUpdatedAt,
       );
@@ -133,6 +199,36 @@ export function TaskEditForm({
         }
         return;
       }
+
+      // 2. If admin, persist any approval-status / revised-target changes
+      //    through their separate Server Actions. Each is a no-op when
+      //    unchanged.
+      if (isAdmin) {
+        if (approvalStatus !== initialApprovalStatus) {
+          const aRes = await setTaskApprovalStatus(taskId, {
+            approvalStatus: approvalStatus === "" ? null : approvalStatus,
+          });
+          if (!aRes.ok) {
+            setError(aRes.message ?? "Failed to set approval status.");
+            return;
+          }
+        }
+        if (revisedTargetDate !== initialRevisedIso) {
+          const rRes = await setTaskRevisedTargetDate(taskId, {
+            revisedTargetDate:
+              revisedTargetDate === ""
+                ? null
+                : new Date(
+                    `${revisedTargetDate}T12:00:00.000Z`,
+                  ).toISOString(),
+          });
+          if (!rRes.ok) {
+            setError(rRes.message ?? "Failed to set revised target date.");
+            return;
+          }
+        }
+      }
+
       fireToast({ message: "Task updated." });
       onCancel();
       router.refresh();
@@ -140,7 +236,7 @@ export function TaskEditForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-hairline px-3.5 py-3 text-[15px] bg-white outline-none transition-shadow focus:border-[rgba(225,29,42,0.45)] focus:shadow-[0_0_0_4px_rgba(225,29,42,0.06)]";
+    "w-full rounded-lg border border-hairline px-3.5 py-3 text-[15px] bg-white outline-none transition-shadow focus:border-[rgba(34,181,227,0.55)] focus:shadow-[0_0_0_4px_rgba(34,181,227,0.10)]";
 
   return (
     <motion.form
@@ -151,7 +247,7 @@ export function TaskEditForm({
       transition={{ duration: 0.24 }}
     >
       <FieldShell
-        label="Title"
+        label="Client Name"
         htmlFor="te-title"
         required
         focused={fTitle}
@@ -195,7 +291,7 @@ export function TaskEditForm({
           )}
         </FieldShell>
         <FieldShell
-          label="Due"
+          label="Due Date"
           htmlFor="te-due"
           required
           focused={fDue}
@@ -222,20 +318,30 @@ export function TaskEditForm({
         setFocused={setFSubj}
       >
         {(p) => (
-          <input
+          <select
             id="te-subject"
-            type="text"
-            maxLength={120}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             className={inputClass}
             {...p}
-          />
+          >
+            <option value="">Select a category…</option>
+            {/* If the existing value isn't in TASK_SUBJECTS (legacy free-text),
+                surface it as the first option so we don't silently lose it. */}
+            {subject && !TASK_SUBJECTS.includes(subject as never) && (
+              <option value={subject}>{subject} (legacy)</option>
+            )}
+            {TASK_SUBJECTS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         )}
       </FieldShell>
 
       <FieldShell
-        label="Description"
+        label="Task Description"
         htmlFor="te-desc"
         focused={fDesc}
         setFocused={setFDesc}
@@ -253,7 +359,7 @@ export function TaskEditForm({
       </FieldShell>
 
       <FieldShell
-        label="Internal notes"
+        label="Initiator Notes"
         htmlFor="te-notes"
         focused={fNotes}
         setFocused={setFNotes}
@@ -269,6 +375,147 @@ export function TaskEditForm({
           />
         )}
       </FieldShell>
+
+      {/* Tags — comma/Enter to commit a chip; click X to remove. */}
+      <FieldShell
+        label={`Tags${tags.length > 0 ? ` · ${tags.length}` : ""}`}
+        htmlFor="te-tags"
+        focused={fTags}
+        setFocused={setFTags}
+      >
+        {(p) => (
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            onClick={() => document.getElementById("te-tags")?.focus()}
+            style={{
+              minHeight: 48,
+              padding: "10px 12px",
+              border: "1px solid var(--color-hairline)",
+              borderRadius: 8,
+              background: "#fff",
+            }}
+          >
+            {tags.map((t, i) => (
+              <span
+                key={`${t}-${i}`}
+                className="inline-flex items-center gap-1 rounded-pill px-2.5 py-1"
+                style={{
+                  background: "var(--vp-cyan-tint)",
+                  color: "rgb(var(--vp-cyan-deep))",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {t}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(i);
+                  }}
+                  aria-label={`Remove tag ${t}`}
+                  className="inline-flex items-center justify-center"
+                  style={{ width: 16, height: 16 }}
+                >
+                  <X size={11} strokeWidth={2.6} />
+                </button>
+              </span>
+            ))}
+            <input
+              id="te-tags"
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onFocus={p.onFocus}
+              onBlur={p.onBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  commitTag();
+                } else if (
+                  e.key === "Backspace" &&
+                  tagInput === "" &&
+                  tags.length > 0
+                ) {
+                  removeTag(tags.length - 1);
+                }
+              }}
+              placeholder={
+                tags.length === 0
+                  ? "Type and press Enter or comma…"
+                  : "Add another…"
+              }
+              className="flex-1 min-w-[140px] bg-transparent outline-none text-[14px]"
+            />
+          </div>
+        )}
+      </FieldShell>
+
+      {isAdmin && (
+        <div
+          className="rounded-lg p-4 grid grid-cols-2 gap-3"
+          style={{
+            background: "var(--vp-cyan-tint)",
+            border: "1px solid rgba(34, 181, 227, 0.32)",
+          }}
+        >
+          <div className="col-span-2 -mb-1">
+            <span
+              className="inline-flex items-center gap-1.5 uppercase tracking-[0.10em] font-bold"
+              style={{
+                fontFamily: "var(--font-mono-display), ui-monospace, monospace",
+                fontSize: 11,
+                color: "rgb(var(--vp-cyan-deep))",
+              }}
+            >
+              <Plus size={12} strokeWidth={2.6} />
+              Admin only
+            </span>
+          </div>
+          <FieldShell
+            label="Approval Status"
+            htmlFor="te-approval"
+            focused={fApproval}
+            setFocused={setFApproval}
+          >
+            {(p) => (
+              <select
+                id="te-approval"
+                value={approvalStatus}
+                onChange={(e) =>
+                  setApprovalStatus(e.target.value as ApprovalStatus | "")
+                }
+                className={inputClass}
+                {...p}
+              >
+                <option value="">No verdict</option>
+                {APPROVAL_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {APPROVAL_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FieldShell>
+          <FieldShell
+            label="Revised Target Date"
+            htmlFor="te-revised"
+            focused={fRevised}
+            setFocused={setFRevised}
+          >
+            {(p) => (
+              <input
+                id="te-revised"
+                type="date"
+                value={revisedTargetDate}
+                onChange={(e) => setRevisedTargetDate(e.target.value)}
+                className={inputClass}
+                {...p}
+              />
+            )}
+          </FieldShell>
+        </div>
+      )}
 
       {error && (
         <p
@@ -299,8 +546,8 @@ export function TaskEditForm({
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-[14px] font-semibold text-white disabled:opacity-50"
           style={{
             background:
-              "linear-gradient(135deg, #ff3845, var(--color-altus-red) 45%, var(--color-altus-red-deep))",
-            boxShadow: "0 8px 20px -10px rgba(225, 29, 42, 0.6)",
+              "linear-gradient(135deg, rgb(103, 232, 249), rgb(34, 181, 227) 45%, rgb(14, 165, 233))",
+            boxShadow: "0 8px 20px -10px rgba(34, 181, 227, 0.55)",
           }}
         >
           {pending ? "Saving…" : "Save changes"}

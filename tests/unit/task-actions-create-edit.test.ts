@@ -94,7 +94,13 @@ describe("createTask", () => {
       priority: "imp_urgent",
       dueAt: "2026-06-01T00:00:00.000Z",
     });
-    expect(result).toEqual({ ok: true, id: "new-task-id" });
+    // Tier-3 (2026-05-20) — createTask now also returns `ids: string[]`
+    // for the multi-doer fanout path. Single-doer callers see id === ids[0].
+    expect(result).toEqual({
+      ok: true,
+      id: "new-task-id",
+      ids: ["new-task-id"],
+    });
     // First insert: tasks; second insert: task_events.
     expect(insertCall).toHaveBeenCalledTimes(2);
   });

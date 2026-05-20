@@ -14,11 +14,13 @@ import {
   TASK_STATUSES,
   EMPLOYEE_ROLES,
   TASK_PRIORITIES,
+  APPROVAL_STATUSES,
 } from "./enums";
 
 export const taskStatusEnum = pgEnum("task_status", TASK_STATUSES);
 export const employeeRoleEnum = pgEnum("employee_role", EMPLOYEE_ROLES);
 export const taskPriorityEnum = pgEnum("task_priority", TASK_PRIORITIES);
+export const approvalStatusEnum = pgEnum("approval_status", APPROVAL_STATUSES);
 
 export const employees = pgTable("employees", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -142,6 +144,16 @@ export const tasks = pgTable(
       .defaultNow(),
     legacyImportKey: text("legacy_import_key"),
     shortId: text("short_id"),
+    // Tier-3 (2026-05-20) additions:
+    //   tags          — comma-of-chips, free-form (no enum). NULL = no tags.
+    //   approvalStatus — admin-only verdict layered on top of `status`. NULL
+    //                    = no verdict yet; when set, surfaces on the row +
+    //                    the dashboard's "Task Approval Status" axis.
+    //   revisedTargetDate — admin-only revised due date. Coexists with
+    //                       `due_at` so the original commitment isn't lost.
+    tags: text("tags").array(),
+    approvalStatus: approvalStatusEnum("approval_status"),
+    revisedTargetDate: timestamp("revised_target_date", { withTimezone: true }),
   },
   (t) => [
     index("tasks_doer_created_idx").on(t.doerId, t.createdAt),
@@ -150,10 +162,11 @@ export const tasks = pgTable(
     index("tasks_pending_created_idx")
       .on(t.createdAt)
       .where(
-        sql`${t.status} IN ('not_started','initiated','follow_up','need_help')`,
+        sql`${t.status} IN ('not_started','initiated','follow_up','need_help','need_info','follow_up_1','follow_up_2','follow_up_3')`,
       ),
     index("tasks_archived_idx").on(t.archived, t.createdAt),
     index("tasks_created_by_idx").on(t.createdById),
+    index("tasks_approval_status_idx").on(t.approvalStatus),
   ],
 );
 

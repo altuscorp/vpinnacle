@@ -40,8 +40,12 @@ import type { TaskStatus, StatusColorToken } from "@/db/enums";
 export const STATUS_LABELS_FALLBACK: Record<TaskStatus, string> = {
   not_started:  "Not Started",
   initiated:    "Initiated",
-  follow_up:    "Follow Up",
+  follow_up:    "Follow Up",         // legacy — kept for already-imported rows
   need_help:    "Need Help",
+  need_info:    "Need Info",         // Tier-3 NEW
+  follow_up_1:  "Follow Up 1",       // Tier-3 NEW
+  follow_up_2:  "Follow Up 2",       // Tier-3 NEW
+  follow_up_3:  "Follow Up 3",       // Tier-3 NEW
   done:         "Done",
   approved:     "Approved",
   not_approved: "Not Approved",
@@ -54,6 +58,10 @@ export const STATUS_TONES_FALLBACK: Record<TaskStatus, StatusColorToken> = {
   initiated:    "amber",
   follow_up:    "amber",
   need_help:    "red",
+  need_info:    "blue",              // Tier-3 NEW — "I need info" is a softer block
+  follow_up_1:  "amber",             // Tier-3 NEW
+  follow_up_2:  "amber",             // Tier-3 NEW
+  follow_up_3:  "red",               // Tier-3 NEW — getting urgent
   done:         "green",
   approved:     "green",
   not_approved: "red",

@@ -1,9 +1,21 @@
+// Tier-3 (2026-05-20) — additive expansion. Manan asked for need_info +
+// follow_up_1/2/3 (granular follow-up tracking) and split the four terminal
+// "approved/not_approved/cancelled/transferred" values into a *separate*
+// admin-only `approval_status` column. The legacy four values stay in this
+// enum so 240 imported tasks keep rendering; new code should write the new
+// statuses + approval_status independently.
 export const TASK_STATUSES = [
   "not_started",
   "initiated",
   "follow_up",
   "need_help",
+  "need_info",      // NEW
+  "follow_up_1",    // NEW
+  "follow_up_2",    // NEW
+  "follow_up_3",    // NEW
   "done",
+  // Legacy terminal values — kept for backward compat with imported data.
+  // New code should use the `approval_status` column instead.
   "approved",
   "not_approved",
   "cancelled",
@@ -12,12 +24,75 @@ export const TASK_STATUSES = [
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
+/** Statuses available to non-admin users in the in-app status picker.
+ *  The legacy four (approved / not_approved / cancelled / transferred) are
+ *  excluded — those are admin-only via the separate approval_status column. */
+export const USER_TASK_STATUSES = [
+  "not_started",
+  "initiated",
+  "need_help",
+  "need_info",
+  "follow_up_1",
+  "follow_up_2",
+  "follow_up_3",
+  "done",
+] as const satisfies readonly TaskStatus[];
+
 export const PENDING_STATUSES = [
   "not_started",
   "initiated",
   "follow_up",
   "need_help",
+  "need_info",
+  "follow_up_1",
+  "follow_up_2",
+  "follow_up_3",
 ] as const satisfies readonly TaskStatus[];
+
+// New admin-only column. Defaults to NULL (no approval verdict yet); the
+// terminal verdict moves the task out of "pending" without touching status.
+export const APPROVAL_STATUSES = [
+  "approved",
+  "not_approved",
+  "cancelled",
+  "transferred",
+] as const;
+export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
+
+// 28 canonical subject categories the New Task form constrains to. Free
+// text remains valid in the DB (the column is `text`) — older tasks may
+// hold values outside this list; the dropdown adds "Other…" as an escape
+// hatch when needed.
+export const TASK_SUBJECTS = [
+  "Marketing",
+  "Exhibition",
+  "CP Sign Up",
+  "Mandate",
+  "Invoicing",
+  "MIS",
+  "Admin",
+  "Recruitment",
+  "Accounts",
+  "PR",
+  "Customer Visit",
+  "Documentation",
+  "Liasoning",
+  "Sales",
+  "Systems",
+  "KPI",
+  "Assessment",
+  "Basic Checklist",
+  "CF Checklist",
+  "Follow Up Basic Docs",
+  "Call Client to complete File",
+  "Call CP to complete File",
+  "Reimbursement",
+  "Collection",
+  "Lead Management",
+  "Agreement Signing",
+  "Bank Follow Up",
+] as const;
+export type TaskSubject = (typeof TASK_SUBJECTS)[number];
 
 export const EMPLOYEE_ROLES = ["doer", "initiator", "both"] as const;
 export type EmployeeRole = (typeof EMPLOYEE_ROLES)[number];

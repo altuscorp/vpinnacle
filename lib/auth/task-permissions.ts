@@ -21,9 +21,16 @@ export type TaskPermissionInput = {
 };
 
 /**
- * canEditTaskFields — permissions matrix row "Edit fields on a task":
- *   creator OR initiator (only while pending) OR admin (always).
- * Spec line 223.
+ * canEditTaskFields — Tier-3 (2026-05-20) widened per Manan's spec
+ * ("Edit Task Option has to be given to all users at all levels").
+ *
+ * Anyone with a relationship to the task (creator / initiator / doer)
+ * can edit its content fields while it's still in the pending lane.
+ * Admins can edit at any status. Strangers — explicitly excluded —
+ * still can't, since they shouldn't even see the task.
+ *
+ * Admin-only fields (approval_status, revised_target_date) live on
+ * separate Server Actions and are gated independently of this flag.
  */
 export function canEditTaskFields(input: TaskPermissionInput): boolean {
   const { employee, task } = input;
@@ -34,6 +41,7 @@ export function canEditTaskFields(input: TaskPermissionInput): boolean {
   if (!isPending) return false;
   if (task.createdById === employee.id) return true;
   if (task.initiatorId === employee.id) return true;
+  if (task.doerId === employee.id) return true;
   return false;
 }
 

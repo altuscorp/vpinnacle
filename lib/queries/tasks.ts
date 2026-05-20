@@ -219,6 +219,10 @@ export type TaskDetail = {
   createdById: string | null;
   creatorName: string | null;
   updatedAt: Date;
+  // Tier-3 (2026-05-20) additions
+  tags: string[] | null;
+  approvalStatus: "approved" | "not_approved" | "cancelled" | "transferred" | null;
+  revisedTargetDate: Date | null;
 };
 
 export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
@@ -246,6 +250,9 @@ export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
       createdById: tasks.createdById,
       creatorName: creatorEmp.name,
       updatedAt: tasks.updatedAt,
+      tags: tasks.tags,
+      approvalStatus: tasks.approvalStatus,
+      revisedTargetDate: tasks.revisedTargetDate,
     })
     .from(tasks)
     .leftJoin(doerEmp,    eq(tasks.doerId,      doerEmp.id))

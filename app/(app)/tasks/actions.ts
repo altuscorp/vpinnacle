@@ -25,6 +25,10 @@ import {
   type CancelInput,
   CommentSchema,
   type CommentInput,
+  SetApprovalStatusSchema,
+  type SetApprovalStatusInput,
+  SetRevisedTargetDateSchema,
+  type SetRevisedTargetDateInput,
 } from "@/lib/validators/task";
 import { taskEvents } from "@/db/schema";
 import { requireUser } from "@/lib/auth/current";
@@ -269,7 +273,8 @@ export async function reassignDoer(
 }
 
 export async function createTask(input: CreateTaskInput): Promise<
-  { ok: true; id: string } | { ok: false; error: string }
+  | { ok: true; id: string; ids: string[] }
+  | { ok: false; error: string }
 > {
   const me = await requireUser();
   let parsed;
@@ -280,99 +285,117 @@ export async function createTask(input: CreateTaskInput): Promise<
     return { ok: false, error: msg };
   }
 
-  // M4 — generate id client-side so short_id can be derived deterministically
-  // from the same UUID.  UNIQUE constraint on tasks.short_id catches the
-  // rare collision; retry with the next 10-char slice of the dashless UUID.
-  const taskId = crypto.randomUUID();
-  let attempt = 0;
-  let row: { id: string } | undefined;
-  while (attempt < 23) {
-    const shortId =
-      attempt === 0
-        ? deriveShortId(taskId)
-        : nextShortIdCandidate(taskId, attempt);
-    if (!shortId) {
-      return { ok: false, error: "Could not derive short_id (uuid exhausted)" };
-    }
-    try {
-      [row] = await db
-        .insert(tasks)
-        .values({
-          id: taskId,
-          title: parsed.title,
-          description: parsed.description,
-          subject: parsed.subject,
-          notes: parsed.notes,
-          doerId: parsed.doerId,
-          initiatorId: parsed.initiatorId,
-          priority: parsed.priority,
-          dueAt: parsed.dueAt,
-          createdById: me.id,
-          shortId,
-          // status defaults to "not_started"; archived defaults to false;
-          // createdAt + updatedAt default to now().
-        })
-        .returning({ id: tasks.id });
-      break;
-    } catch (err: unknown) {
-      const e = err as { code?: string; constraint?: string; message?: string };
-      if (e?.code === "23505" && e?.constraint === "tasks_short_id_uidx") {
-        attempt++;
-        continue;
-      }
-      return { ok: false, error: `DB: ${e?.message ?? String(err)}` };
-    }
+  // Tier-3 fanout: normalise to an array so we always loop. Backward-compat
+  // callers (existing tests + any legacy callsite) pass `doerId`; the new
+  // form passes `doerIds`. The refine() rule guarantees exactly one is set.
+  const doerIds = parsed.doerIds ?? (parsed.doerId ? [parsed.doerId] : []);
+  if (doerIds.length === 0) {
+    return { ok: false, error: "At least one doer is required" };
   }
 
-  if (!row && attempt >= 23) {
-    // 23 short_id slices all collided.  Astronomical in practice but
-    // worth a clear error if it ever fires.
-    return { ok: false, error: "Could not allocate unique short_id after 23 attempts" };
-  }
-
-  if (!row) {
-    // Drizzle strict-mode: returning() can produce undefined under
-    // pathological circumstances (e.g. an RLS denial).  Surface it.
-    return { ok: false, error: "Insert returned no row" };
-  }
-
-  await db.insert(taskEvents).values({
-    taskId: row.id,
-    actorId: me.id,
-    eventType: "created",
-    toValue: {
-      title: parsed.title,
-      doerId: parsed.doerId,
-      initiatorId: parsed.initiatorId,
-      priority: parsed.priority,
-      dueAt: parsed.dueAt.toISOString(),
-    },
+  const createdIds: string[] = [];
+  const label = taskLabel({
+    subject: parsed.subject ?? null,
+    title: parsed.title,
   });
 
-  // Fan-out: doer is now assigned; initiator is on the hook for review.
-  // Both are explicit per-recipient kinds so emails can use distinct copy.
-  const label = taskLabel({ subject: parsed.subject ?? null, title: parsed.title });
-  if (parsed.doerId !== me.id) {
-    await notify({
-      userId: parsed.doerId,
-      kind: "task_assigned",
-      title: `${me.name} assigned you '${label}'`,
+  for (const doerId of doerIds) {
+    // M4 — generate id client-side so short_id can be derived deterministically
+    // from the same UUID.  UNIQUE constraint on tasks.short_id catches the
+    // rare collision; retry with the next 10-char slice of the dashless UUID.
+    const taskId = crypto.randomUUID();
+    let attempt = 0;
+    let row: { id: string } | undefined;
+    while (attempt < 23) {
+      const shortId =
+        attempt === 0
+          ? deriveShortId(taskId)
+          : nextShortIdCandidate(taskId, attempt);
+      if (!shortId) {
+        return { ok: false, error: "Could not derive short_id (uuid exhausted)" };
+      }
+      try {
+        [row] = await db
+          .insert(tasks)
+          .values({
+            id: taskId,
+            title: parsed.title,
+            description: parsed.description,
+            subject: parsed.subject,
+            notes: parsed.notes,
+            doerId,
+            initiatorId: parsed.initiatorId,
+            priority: parsed.priority,
+            dueAt: parsed.dueAt,
+            tags: parsed.tags ?? null,
+            createdById: me.id,
+            shortId,
+            // status defaults to "not_started"; archived defaults to false;
+            // createdAt + updatedAt default to now().
+          })
+          .returning({ id: tasks.id });
+        break;
+      } catch (err: unknown) {
+        const e = err as { code?: string; constraint?: string; message?: string };
+        if (e?.code === "23505" && e?.constraint === "tasks_short_id_uidx") {
+          attempt++;
+          continue;
+        }
+        return { ok: false, error: `DB: ${e?.message ?? String(err)}` };
+      }
+    }
+
+    if (!row) {
+      return {
+        ok: false,
+        error:
+          attempt >= 23
+            ? "Could not allocate unique short_id after 23 attempts"
+            : "Insert returned no row",
+      };
+    }
+
+    await db.insert(taskEvents).values({
       taskId: row.id,
       actorId: me.id,
+      eventType: "created",
+      toValue: {
+        title: parsed.title,
+        doerId,
+        initiatorId: parsed.initiatorId,
+        priority: parsed.priority,
+        dueAt: parsed.dueAt.toISOString(),
+        tags: parsed.tags ?? null,
+      },
     });
-  }
-  if (parsed.initiatorId !== me.id && parsed.initiatorId !== parsed.doerId) {
-    await notify({
-      userId: parsed.initiatorId,
-      kind: "task_initiated",
-      title: `${me.name} made you initiator on '${label}'`,
-      taskId: row.id,
-      actorId: me.id,
-    });
+
+    // Fan-out: doer is now assigned; initiator is on the hook for review.
+    // Both are explicit per-recipient kinds so emails can use distinct copy.
+    if (doerId !== me.id) {
+      await notify({
+        userId: doerId,
+        kind: "task_assigned",
+        title: `${me.name} assigned you '${label}'`,
+        taskId: row.id,
+        actorId: me.id,
+      });
+    }
+    if (parsed.initiatorId !== me.id && parsed.initiatorId !== doerId) {
+      await notify({
+        userId: parsed.initiatorId,
+        kind: "task_initiated",
+        title: `${me.name} made you initiator on '${label}'`,
+        taskId: row.id,
+        actorId: me.id,
+      });
+    }
+
+    createdIds.push(row.id);
   }
 
   revalidateTaskRoutes();
-  return { ok: true, id: row.id };
+  // `id` kept as a string for backward compat with single-doer callers.
+  return { ok: true, id: createdIds[0]!, ids: createdIds };
 }
 
 /**
@@ -986,6 +1009,140 @@ export async function addComment(
     recipients: [current.createdById, current.initiatorId, current.doerId],
   });
 
+  revalidatePath(`/tasks/${taskId}`);
+  return { ok: true };
+}
+
+// ───────────────────────────── Tier-3 admin-only ─────────────────────────
+//
+// approval_status + revised_target_date are admin-only columns added in
+// migration 0019. They sit alongside the existing status column rather
+// than reusing it, so the doer's "status" lifecycle stays independent
+// from the initiator/admin's verdict (approved | not_approved | …).
+
+/**
+ * Set or clear `approval_status` on a task. Admin-only.
+ * Pass `approvalStatus: null` to clear a previous verdict.
+ */
+export async function setTaskApprovalStatus(
+  taskId: string,
+  input: SetApprovalStatusInput,
+): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      error: "invalid" | "not-found" | "forbidden";
+      message?: string;
+    }
+> {
+  if (!isUuid(taskId)) {
+    return { ok: false, error: "invalid", message: "Bad task id" };
+  }
+  const me = await requireUser();
+  if (!me.isAdmin) return { ok: false, error: "forbidden" };
+
+  let parsed;
+  try {
+    parsed = SetApprovalStatusSchema.parse(input);
+  } catch (err) {
+    return {
+      ok: false,
+      error: "invalid",
+      message: err instanceof Error ? err.message : "Invalid input",
+    };
+  }
+
+  const current = await db.query.tasks.findFirst({
+    where: eq(tasks.id, taskId),
+  });
+  if (!current) return { ok: false, error: "not-found" };
+
+  if (current.approvalStatus === parsed.approvalStatus) {
+    return { ok: true }; // no-op
+  }
+
+  const now = new Date();
+  await db
+    .update(tasks)
+    .set({ approvalStatus: parsed.approvalStatus, updatedAt: now })
+    .where(eq(tasks.id, taskId));
+
+  await db.insert(taskEvents).values({
+    taskId,
+    actorId: me.id,
+    eventType: "field_updated",
+    fromValue: { field: "approvalStatus", value: current.approvalStatus },
+    toValue: {
+      field: "approvalStatus",
+      value: parsed.approvalStatus,
+      ...(parsed.note ? { note: parsed.note } : {}),
+    },
+  });
+
+  revalidateTaskRoutes();
+  revalidatePath(`/tasks/${taskId}`);
+  return { ok: true };
+}
+
+/**
+ * Set or clear `revised_target_date` on a task. Admin-only.
+ * The original `due_at` is never modified — admins set the revised
+ * target alongside it so the original commitment stays auditable.
+ */
+export async function setTaskRevisedTargetDate(
+  taskId: string,
+  input: SetRevisedTargetDateInput,
+): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      error: "invalid" | "not-found" | "forbidden";
+      message?: string;
+    }
+> {
+  if (!isUuid(taskId)) {
+    return { ok: false, error: "invalid", message: "Bad task id" };
+  }
+  const me = await requireUser();
+  if (!me.isAdmin) return { ok: false, error: "forbidden" };
+
+  let parsed;
+  try {
+    parsed = SetRevisedTargetDateSchema.parse(input);
+  } catch (err) {
+    return {
+      ok: false,
+      error: "invalid",
+      message: err instanceof Error ? err.message : "Invalid input",
+    };
+  }
+
+  const current = await db.query.tasks.findFirst({
+    where: eq(tasks.id, taskId),
+  });
+  if (!current) return { ok: false, error: "not-found" };
+
+  const prevIso = current.revisedTargetDate?.toISOString() ?? null;
+  const nextIso = parsed.revisedTargetDate?.toISOString() ?? null;
+  if (prevIso === nextIso) {
+    return { ok: true }; // no-op
+  }
+
+  const now = new Date();
+  await db
+    .update(tasks)
+    .set({ revisedTargetDate: parsed.revisedTargetDate, updatedAt: now })
+    .where(eq(tasks.id, taskId));
+
+  await db.insert(taskEvents).values({
+    taskId,
+    actorId: me.id,
+    eventType: "field_updated",
+    fromValue: { field: "revisedTargetDate", value: prevIso },
+    toValue: { field: "revisedTargetDate", value: nextIso },
+  });
+
+  revalidateTaskRoutes();
   revalidatePath(`/tasks/${taskId}`);
   return { ok: true };
 }
