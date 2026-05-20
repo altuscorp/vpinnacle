@@ -1,10 +1,10 @@
 import type { Employee } from "@/db/schema";
 
 export type DashboardAccent = "blue" | "amber" | "purple";
-export type DashboardIconName = "Building2" | "Receipt" | "ClipboardList";
+export type DashboardIconName = "Building2" | "Receipt" | "TrendingUp";
 
 export interface DashboardLink {
-  id: "bank-liasoning" | "mandate-collection" | "task-management";
+  id: "leads" | "liasoning" | "mandate-collection";
   label: string;
   description: string;
   url: string;
@@ -29,31 +29,31 @@ function isSpecialOrAdmin(e: Employee): boolean {
 
 export const EXTERNAL_DASHBOARDS: readonly DashboardLink[] = [
   {
-    id: "bank-liasoning",
-    label: "Bank Liasoning",
-    description: "Operations dashboard for liasoning",
-    url: "https://script.google.com/a/macros/vpinnacle.com/s/AKfycbzTPFV7SaqrkTmdziYWxTYN2h4rJvoSrlLS8Cc9vx_lXcLuRwdPvtDFleppsZx9bZvu/exec",
+    id: "leads",
+    label: "Leads Dashboard",
+    description: "Sales pipeline and lead tracking",
+    url: "https://script.google.com/a/macros/vpinnacle.com/s/AKfycbxEy22N4i8sMZQrvDKS34ootPYG5iqUmkmYlDc8HfeGg4J09HH9A1LIJOxbcS_aoNWS/exec",
+    accent: "purple",
+    iconName: "TrendingUp",
+    visibleTo: isSpecialOrAdmin,
+  },
+  {
+    id: "liasoning",
+    label: "Liasoning Dashboard",
+    description: "Bank liasoning operations",
+    url: "https://script.google.com/a/macros/vpinnacle.com/s/AKfycbz1JvHQt5khqN7paoAryLEL7dw_R2bBQERS8g6O1wp_kABxlaD9ho9WJ49EIprEtLrq/exec",
     accent: "blue",
     iconName: "Building2",
     visibleTo: isSpecialOrAdmin,
   },
   {
     id: "mandate-collection",
-    label: "Mandate & Collection",
-    description: "Operations dashboard for mandate and collection",
+    label: "Mandate and Collection Dashboard",
+    description: "Mandate setup and collection tracking",
     url: "https://script.google.com/a/macros/vpinnacle.com/s/AKfycbzg_sOjeR2i5u05_-4b65AHZl8uecQsIcfIxIM8UsIK9zFn4OXkV-tzEB5Pt3qiPJ6g5A/exec",
     accent: "amber",
     iconName: "Receipt",
     visibleTo: isSpecialOrAdmin,
-  },
-  {
-    id: "task-management",
-    label: "Task Management",
-    description: "Legacy Apps Script task tracker",
-    url: "https://script.google.com/macros/s/AKfycbzmodREIMnrAo-607RKAyraVApFPr3u7wX3yCv5ny0cqS0jL7Chs77ehL6JVyC_NsOz/exec?page=form",
-    accent: "purple",
-    iconName: "ClipboardList",
-    visibleTo: () => true,
   },
 ];
 

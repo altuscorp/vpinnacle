@@ -3,9 +3,9 @@ import * as React from "react";
 import {
   BarChart3,
   Building2,
-  ClipboardList,
   ExternalLink,
   Receipt,
+  TrendingUp,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -25,7 +25,7 @@ interface Props {
 const ICONS: Record<DashboardIconName, LucideIcon> = {
   Building2,
   Receipt,
-  ClipboardList,
+  TrendingUp,
 };
 
 // Maps each accent token to the live CSS variable our globals expose.
@@ -65,7 +65,7 @@ export function LiasoningNavPill({ links }: Props) {
         <button
           ref={triggerRef}
           type="button"
-          aria-label="Liasoning dashboards"
+          aria-label="Reports"
           className={"nav-pill" + (open ? " nav-pill-active" : "")}
           onMouseMove={onMove}
           onMouseLeave={onLeave}
@@ -88,7 +88,7 @@ export function LiasoningNavPill({ links }: Props) {
           }
         >
           <BarChart3 size={16} strokeWidth={2.2} />
-          <span className="max-md:hidden">Liasoning</span>
+          <span className="max-md:hidden">Reports</span>
         </button>
       </Dialog.Trigger>
 

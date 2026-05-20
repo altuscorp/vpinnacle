@@ -31,13 +31,11 @@ function fakeEmployee(over: Partial<Employee>): Employee {
   } as unknown as Employee;
 }
 
+const ALL_IDS = ["leads", "liasoning", "mandate-collection"] as const;
+
 describe("EXTERNAL_DASHBOARDS", () => {
   it("declares exactly three dashboards in stable order", () => {
-    expect(EXTERNAL_DASHBOARDS.map((d) => d.id)).toEqual([
-      "bank-liasoning",
-      "mandate-collection",
-      "task-management",
-    ]);
+    expect(EXTERNAL_DASHBOARDS.map((d) => d.id)).toEqual(ALL_IDS);
   });
 
   it("every dashboard has a non-empty URL and accent token", () => {
@@ -53,28 +51,28 @@ describe("getVisibleDashboards", () => {
     expect(getVisibleDashboards(null)).toEqual([]);
   });
 
-  it("non-admin, non-special email sees only Task Management", () => {
+  it("non-admin, non-special email sees no Reports dashboards", () => {
     const me = fakeEmployee({ email: "shilpa@vpinnacle.com", isAdmin: false });
     const ids = getVisibleDashboards(me).map((d) => d.id);
-    expect(ids).toEqual(["task-management"]);
+    expect(ids).toEqual([]);
   });
 
   it("non-admin user with altus@vpinnacle.com sees all three", () => {
     const me = fakeEmployee({ email: "altus@vpinnacle.com", isAdmin: false });
     const ids = getVisibleDashboards(me).map((d) => d.id);
-    expect(ids).toEqual(["bank-liasoning", "mandate-collection", "task-management"]);
+    expect(ids).toEqual(ALL_IDS);
   });
 
   it("non-admin user with pravin@vpinnacle.com sees all three (case-insensitive)", () => {
     const me = fakeEmployee({ email: "Pravin@VPinnacle.com", isAdmin: false });
     const ids = getVisibleDashboards(me).map((d) => d.id);
-    expect(ids).toEqual(["bank-liasoning", "mandate-collection", "task-management"]);
+    expect(ids).toEqual(ALL_IDS);
   });
 
   it("admin with an unrelated email still sees all three", () => {
     const me = fakeEmployee({ email: "hetesh@altuscorp.in", isAdmin: true });
     const ids = getVisibleDashboards(me).map((d) => d.id);
-    expect(ids).toEqual(["bank-liasoning", "mandate-collection", "task-management"]);
+    expect(ids).toEqual(ALL_IDS);
   });
 
   it("trims surrounding whitespace before comparing emails", () => {
