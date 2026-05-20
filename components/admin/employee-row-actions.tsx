@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Link2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
   reactivateEmployee,
   deleteEmployee,
   getEmployeeDeletionImpact,
+  getInviteLink,
   type EmployeeDeletionImpact,
 } from "@/app/(admin)/admin/employees/actions";
 import { EditEmployeeDialog } from "@/components/admin/edit-employee-dialog";
@@ -119,6 +121,29 @@ export function EmployeeRowActions({
     });
   }
 
+  function handleCopyInviteLink() {
+    startTransition(async () => {
+      const res = await getInviteLink(employee.id);
+      if (!res.ok || !res.link) {
+        fireToast({ message: res.error ?? "Could not generate invite link." });
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(res.link);
+        fireToast({
+          message: `Invite link for ${employee.name} copied — paste anywhere to share. Expires in 1h.`,
+        });
+      } catch {
+        // Clipboard write blocked (no permissions / insecure context).
+        // Fall back to a window.prompt so admin can still grab the link.
+        window.prompt(
+          `Copy this invite link for ${employee.name} (expires in 1 hour):`,
+          res.link,
+        );
+      }
+    });
+  }
+
   function handleConfirm() {
     if (confirm === null) return;
     const action = confirm;
@@ -147,8 +172,11 @@ export function EmployeeRowActions({
     });
   }
 
-  // Edit is always available, so we always render the trigger.
-  const showSeparator = isInvited || canDeactivate || canReactivate;
+  // Edit + Copy link are always available, so we always render the trigger.
+  // The "link" group (resend + copy) only makes sense while the account is
+  // active — deactivated users can't sign in regardless.
+  const canShareLink = employee.isActive;
+  const showSeparator = canShareLink || canDeactivate || canReactivate;
   const showDeleteSeparator = canDelete;
 
   return (
@@ -174,6 +202,12 @@ export function EmployeeRowActions({
             <DropdownMenuItem onClick={handleResend}>
               <MailPlus size={14} />
               Resend invite
+            </DropdownMenuItem>
+          )}
+          {canShareLink && (
+            <DropdownMenuItem onClick={handleCopyInviteLink}>
+              <Link2 size={14} />
+              {isInvited ? "Copy invite link" : "Copy password-reset link"}
             </DropdownMenuItem>
           )}
           {canDeactivate && (

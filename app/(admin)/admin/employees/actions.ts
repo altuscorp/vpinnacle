@@ -336,6 +336,57 @@ export async function editEmployee(
   return { ok: true };
 }
 
+/**
+ * Generate the Firebase password-reset link for an existing employee
+ * and return it so the admin can ship it manually (DM / WhatsApp /
+ * paste-into-an-email-they-control). This is the bypass for when
+ * Resend is down or the recipient's domain isn't on Resend's verified
+ * sender list yet.
+ *
+ * Does NOT touch the employees row, does NOT log an audit event — it's
+ * a read-only credential-handoff. Admin-only. Returns the link as a
+ * raw string so the client can drop it on the clipboard.
+ */
+export async function getInviteLink(
+  employeeId: string,
+): Promise<{ ok: boolean; link?: string; error?: string }> {
+  await requireAdmin();
+  const parsedId = EmployeeIdSchema.safeParse(employeeId);
+  if (!parsedId.success) {
+    return {
+      ok: false,
+      error: parsedId.error.issues[0]?.message ?? "Invalid employee id",
+    };
+  }
+  const emp = await db.query.employees.findFirst({
+    where: eq(employees.id, parsedId.data),
+  });
+  if (!emp) return { ok: false, error: "Employee not found." };
+  if (!emp.isActive) {
+    return { ok: false, error: "Employee is deactivated — reactivate first." };
+  }
+  if (!emp.firebaseUid) {
+    return {
+      ok: false,
+      error: "This employee has no Firebase account yet — contact support.",
+    };
+  }
+  try {
+    const link = await getFirebaseAdminAuth().generatePasswordResetLink(
+      emp.email,
+      { url: `${requireSiteUrl()}/welcome?intent=invite` },
+    );
+    return { ok: true, link };
+  } catch (err: any) {
+    return {
+      ok: false,
+      error:
+        translateFirebaseAdminError(err) ??
+        (err?.message ?? String(err)),
+    };
+  }
+}
+
 export async function resendInvite(employeeId: string): Promise<{ ok: boolean; error?: string }> {
   const me = await requireAdmin();
   const parsedId = EmployeeIdSchema.safeParse(employeeId);
