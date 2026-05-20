@@ -10,11 +10,32 @@ export function computeKpiTotals(tasks: Task[]): KpiTotals {
   let notApproved = 0;
 
   for (const t of tasks) {
-    if (t.status === "done" || t.status === "approved") done++;
-    else if (t.status === "not_started") notStarted++;
-    else if (t.status === "need_help") needHelp++;
-    else if (t.status === "initiated" || t.status === "follow_up") pending++;
-    else if (t.status === "not_approved") notApproved++;
+    // Done bucket: legacy `done`/`approved` lifecycle values OR new
+    // approval_status="approved" verdict (any status).
+    if (
+      t.status === "done" ||
+      t.status === "approved" ||
+      t.approvalStatus === "approved"
+    ) {
+      done++;
+      continue;
+    }
+    // Not-approved bucket: legacy status value OR new approval_status.
+    if (t.status === "not_approved" || t.approvalStatus === "not_approved") {
+      notApproved++;
+      continue;
+    }
+    if (t.status === "not_started") notStarted++;
+    else if (t.status === "need_help" || t.status === "need_info") needHelp++;
+    else if (
+      t.status === "initiated" ||
+      t.status === "follow_up" ||
+      t.status === "follow_up_1" ||
+      t.status === "follow_up_2" ||
+      t.status === "follow_up_3"
+    ) {
+      pending++;
+    }
   }
 
   return {

@@ -1,5 +1,6 @@
 import { LiveIndicator } from "./live-indicator";
 import { MainNavServer } from "./main-nav-server";
+import { NavHistoryButtons } from "./nav-history-buttons";
 import { UserMenuServer } from "@/components/header/user-menu-server";
 import { NewTaskTrigger } from "@/components/header/new-task-trigger";
 import { AdminPill } from "@/components/header/admin-pill";
@@ -35,6 +36,9 @@ export async function DashboardHeader({
         }}
       >
         <div className="relative mx-auto max-w-[1600px] h-[96px] px-8 max-md:h-[72px] max-md:px-4 flex items-center gap-10 max-md:gap-3">
+          {/* LEFT-MOST: Back / Forward history pills (md+ only) */}
+          <NavHistoryButtons />
+
           {/* LEFT: cyan triangle + bold ink wordmark */}
           <div className="flex items-center gap-3.5 shrink-0">
             <span

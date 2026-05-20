@@ -16,6 +16,7 @@ import type { TaskStatus, StatusColorToken } from "@/db/enums";
 import type { TaskListRow } from "@/lib/types";
 import { TaskRowActions } from "./task-row-actions";
 import { EmployeeAvatar } from "@/components/ui/employee-avatar";
+import { InlineStatusCell } from "./inline-status-cell";
 import {
   STATUS_LABELS_FALLBACK,
   STATUS_TONES_FALLBACK,
@@ -154,18 +155,16 @@ function buildColumns(
       accessorKey: "status",
       header: "Status",
       cell: (info) => {
-        const s = info.getValue<string>() as TaskStatus;
-        const tone = statusTones[s] ?? "amber";
+        const row = info.row.original;
         return (
-          <span
-            className="inline-flex items-center px-3 py-1.5 rounded-pill text-[13px] font-bold tabular-nums"
-            style={{
-              background: `color-mix(in srgb, var(--color-${tone}) 12%, transparent)`,
-              color: `var(--color-${tone}-deep)`,
-            }}
-          >
-            {statusLabels[s] ?? s}
-          </span>
+          <InlineStatusCell
+            taskId={row.id}
+            status={row.status}
+            updatedAt={row.updatedAt}
+            labels={statusLabels}
+            tones={statusTones}
+            isAdmin={me.isAdmin}
+          />
         );
       },
     },

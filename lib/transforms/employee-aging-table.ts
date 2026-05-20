@@ -1,15 +1,12 @@
 import type { Employee, Task } from "@/db/schema";
 import type { AgingRow } from "@/lib/types";
-import { AGE_BUCKETS, type AgeBucketId } from "@/db/enums";
+import { AGE_BUCKETS, PENDING_STATUSES, type AgeBucketId } from "@/db/enums";
 import { bucketForAge } from "./aging-buckets";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const PENDING = new Set([
-  "not_started",
-  "initiated",
-  "follow_up",
-  "need_help",
-]);
+// Source from the canonical PENDING_STATUSES so adding new pending values
+// in db/enums.ts automatically flows into the aging heatmap.
+const PENDING = new Set<string>(PENDING_STATUSES);
 
 function ageInDays(createdAt: Date, now: Date): number {
   return Math.floor((now.getTime() - createdAt.getTime()) / MS_PER_DAY);

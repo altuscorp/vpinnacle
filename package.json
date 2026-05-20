@@ -55,6 +55,7 @@
     "next-firebase-auth-edge": "^1.12.0",
     "nuqs": "^2.8.9",
     "ogl": "^1.0.11",
+    "pdfkit": "^0.18.0",
     "postgres": "^3.4.9",
     "react": "^19.2.6",
     "react-day-picker": "^10.0.0",
@@ -64,6 +65,7 @@
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0",
     "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -74,6 +76,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.2",
+    "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

@@ -107,6 +107,10 @@ export interface TaskExportRow {
   approvedAt: Date | null;
   updatedAt: Date;
   archived: boolean;
+  // Tier-3 (2026-05-20) additions — surfaced for XLSX/PDF exports.
+  tags: string[] | null;
+  approvalStatus: "approved" | "not_approved" | "cancelled" | "transferred" | null;
+  revisedTargetDate: Date | null;
 }
 
 /**
@@ -163,6 +167,9 @@ export async function listTasksForExport(
       doerName: doerEmp.name,
       department: doerEmp.department,
       initiatorName: initEmp.name,
+      tags: tasks.tags,
+      approvalStatus: tasks.approvalStatus,
+      revisedTargetDate: tasks.revisedTargetDate,
     })
     .from(tasks)
     .leftJoin(doerEmp, eq(tasks.doerId, doerEmp.id))
@@ -187,6 +194,9 @@ export async function listTasksForExport(
     approvedAt: r.approvedAt,
     updatedAt: r.updatedAt,
     archived: r.archived,
+    tags: r.tags ?? null,
+    approvalStatus: r.approvalStatus,
+    revisedTargetDate: r.revisedTargetDate,
   }));
 }
 

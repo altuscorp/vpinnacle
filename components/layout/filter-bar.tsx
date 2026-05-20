@@ -299,23 +299,53 @@ export function FilterBar({
         <div className="ml-auto flex items-center gap-2.5">
           {/* Export current view as CSV — only shown on the task list views.
               The route applies the SAME default-doer scope as /tasks, so
-              non-admins can only ever export their own data. */}
-          {(pathname === "/tasks" || pathname === "/archived") && (
-            <a
-              href={`/tasks/export?${(() => {
-                const exportSp = new URLSearchParams(searchParams.toString());
-                if (pathname === "/archived") exportSp.set("archived", "1");
-                return exportSp.toString();
-              })()}`}
-              download
-              className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
-              title="Download current view as CSV"
-              aria-label="Export CSV"
-            >
-              <Download size={14} strokeWidth={2.2} />
-              Export CSV
-            </a>
-          )}
+              non-admins can only ever export their own data.
+              XLS + PDF variants are admin-only (richer/humanized columns). */}
+          {(pathname === "/tasks" || pathname === "/archived") && (() => {
+            const buildExportHref = (path: string) => {
+              const exportSp = new URLSearchParams(searchParams.toString());
+              if (pathname === "/archived") exportSp.set("archived", "1");
+              return `${path}?${exportSp.toString()}`;
+            };
+            return (
+              <>
+                <a
+                  href={buildExportHref("/tasks/export")}
+                  download
+                  className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                  title="Download current view as CSV"
+                  aria-label="Export CSV"
+                >
+                  <Download size={14} strokeWidth={2.2} />
+                  Export CSV
+                </a>
+                {me?.isAdmin && (
+                  <>
+                    <a
+                      href={buildExportHref("/tasks/export.xlsx")}
+                      download
+                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                      title="Download current view as XLSX"
+                      aria-label="Export XLS"
+                    >
+                      <Download size={14} strokeWidth={2.2} />
+                      Export XLS
+                    </a>
+                    <a
+                      href={buildExportHref("/tasks/export.pdf")}
+                      download
+                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                      title="Download current view as PDF"
+                      aria-label="Export PDF"
+                    >
+                      <Download size={14} strokeWidth={2.2} />
+                      Export PDF
+                    </a>
+                  </>
+                )}
+              </>
+            );
+          })()}
           <button
             type="button"
             onClick={(e) => {

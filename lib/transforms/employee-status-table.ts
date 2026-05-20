@@ -41,6 +41,17 @@ export function computeEmployeeStatusTable(
       row.criticalCount += 1;
     }
 
+    // Tier-3 (2026-05-20): the approval_status column is the new way
+    // to record approved/not_approved/cancelled/transferred verdicts.
+    // Bucket those first so they take priority over the lifecycle status.
+    if (t.approvalStatus) {
+      switch (t.approvalStatus) {
+        case "approved":      row.approved   += 1; continue;
+        case "not_approved":  row.notApproved += 1; continue;
+        case "cancelled":     row.cancelled   += 1; continue;
+        case "transferred":   row.transferred += 1; continue;
+      }
+    }
     switch (t.status) {
       case "approved":
         row.approved += 1;
@@ -58,10 +69,14 @@ export function computeEmployeeStatusTable(
         row.cancelled += 1;
         break;
       case "need_help":
+      case "need_info":           // Tier-3 — rolls into the "need" bucket
         row.needHelp += 1;
         row.pendingTotal += 1;
         break;
       case "follow_up":
+      case "follow_up_1":         // Tier-3
+      case "follow_up_2":         // Tier-3
+      case "follow_up_3":         // Tier-3
         row.followUp += 1;
         row.pendingTotal += 1;
         break;
