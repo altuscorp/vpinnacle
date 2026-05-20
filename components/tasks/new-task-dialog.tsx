@@ -240,12 +240,12 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
           style={{ background: "rgba(15, 23, 42, 0.45)", backdropFilter: "blur(4px)" }}
         />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-[70] w-[min(1120px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-section border border-hairline bg-surface-card shadow-xl overflow-hidden"
+          className="fixed left-1/2 top-1/2 z-[70] w-[min(1360px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-section border border-hairline bg-surface-card shadow-xl overflow-hidden"
           style={{ maxHeight: "calc(100vh - 48px)" }}
         >
           {/* Header — cyan brand bar + big title */}
           <div
-            className="relative px-8 py-6 max-md:px-5 max-md:py-5"
+            className="relative px-10 py-7 max-md:px-5 max-md:py-5"
             style={{
               borderBottom: "1px solid var(--color-hairline)",
               background:
@@ -256,7 +256,7 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
               aria-hidden
               className="absolute inset-x-0 top-0"
               style={{
-                height: 4,
+                height: 5,
                 background:
                   "linear-gradient(90deg, rgb(34, 181, 227), rgb(14, 165, 233))",
               }}
@@ -266,17 +266,17 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
               style={{
                 fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontWeight: 900,
-                fontSize: "clamp(28px, 2.8vw, 38px)",
-                letterSpacing: "-0.022em",
-                lineHeight: 1.05,
+                fontSize: "clamp(36px, 3.6vw, 52px)",
+                letterSpacing: "-0.024em",
+                lineHeight: 1.02,
               }}
             >
               New task
             </Dialog.Title>
             <Dialog.Description
-              className="mt-1.5 font-semibold"
+              className="mt-2 font-bold"
               style={{
-                fontSize: 16,
+                fontSize: 19,
                 color: "var(--color-ink-muted)",
               }}
             >
@@ -286,25 +286,25 @@ export function NewTaskDialog({ employees, defaultInitiatorId }: Props) {
               <button
                 type="button"
                 aria-label="Close"
-                className="absolute top-5 right-5 inline-flex items-center justify-center rounded-full transition-all"
+                className="absolute top-6 right-6 inline-flex items-center justify-center rounded-full transition-all"
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   border: "1px solid var(--color-hairline)",
                   background: "#ffffff",
                   color: "var(--color-ink-muted)",
                 }}
               >
-                <X size={20} strokeWidth={2.4} />
+                <X size={24} strokeWidth={2.4} />
               </button>
             </Dialog.Close>
           </div>
 
           {/* Scrollable body — fills the rectangle */}
           <div
-            className="px-8 py-7 max-md:px-5 max-md:py-5"
+            className="px-10 py-8 max-md:px-5 max-md:py-5"
             style={{
-              maxHeight: "calc(100vh - 220px)",
+              maxHeight: "calc(100vh - 240px)",
               overflowY: "auto",
             }}
           >

@@ -26,9 +26,9 @@ export function AdminPill() {
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               background:
-                "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
+                "linear-gradient(135deg, #334155, #0F172A)",
               boxShadow:
-                "0 2px 8px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)",
+                "0 2px 8px rgba(15, 23, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.16)",
               transition:
                 "transform 180ms ease, box-shadow 220ms ease, filter 180ms ease",
               willChange: "transform",
@@ -36,13 +36,13 @@ export function AdminPill() {
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(225, 29, 42, 0.55), inset 0 0 0 1px rgba(255,255,255,0.28)";
+                "0 6px 16px rgba(15, 23, 42, 0.55), inset 0 0 0 1px rgba(255,255,255,0.26)";
               e.currentTarget.style.filter = "brightness(1.06)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "";
               e.currentTarget.style.boxShadow =
-                "0 2px 8px rgba(225, 29, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.18)";
+                "0 2px 8px rgba(15, 23, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.16)";
               e.currentTarget.style.filter = "";
             }}
           >

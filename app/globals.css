@@ -864,6 +864,44 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
+/* Header in light mode — nav pills read as highlighted cyan-tinted
+   chips by default (not transparent), so the nav has visible weight
+   on the white surface. Active pill stays full cyan gradient. */
+.header-light .nav-pill {
+  background: var(--vp-cyan-tint);
+  border: 1.5px solid rgba(34, 181, 227, 0.28);
+  color: rgb(var(--vp-cyan-deep));
+  font-size: 16px;
+  font-weight: 800;
+  padding: 12px 20px;
+  letter-spacing: 0.005em;
+}
+.header-light .nav-pill:hover {
+  background: rgba(34, 181, 227, 0.16);
+  border-color: rgb(var(--vp-cyan));
+  color: rgb(var(--vp-cyan-deep));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 181, 227, 0.22);
+}
+.header-light .nav-pill-active,
+.header-light .nav-pill-active:hover {
+  background: linear-gradient(135deg, rgb(var(--vp-cyan)), rgb(var(--vp-cyan-deep)));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow:
+    0 10px 24px rgba(34, 181, 227, 0.38),
+    0 0 0 4px rgba(34, 181, 227, 0.16);
+}
+.header-light .nav-pill-count {
+  background: rgba(34, 181, 227, 0.18);
+  color: rgb(var(--vp-cyan-deep));
+  font-weight: 800;
+}
+.header-light .nav-pill-active .nav-pill-count {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
+}
+
 /* react-day-picker theme overrides — match Light Vibrant palette */
 .rdp-root {
   --rdp-accent-color: var(--color-altus-red);
@@ -1318,10 +1356,10 @@
    transitions so every input/select/textarea reads as one family. */
 .nt-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 16px 18px;
   font-family: var(--font-sans, system-ui, sans-serif);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 600;
   line-height: 1.4;
   color: var(--color-ink-strong);
   background: #ffffff;

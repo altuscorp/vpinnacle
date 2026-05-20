@@ -155,13 +155,13 @@ export function FilterBar({
 
   return (
     <div
-      // Tight against the bottom of the sticky header (98px = 96 content + 2 strip).
-      // Mobile header collapses to 64 + 2 = 66.
-      className="sticky top-[98px] max-md:top-[66px] z-40 border-b border-hairline"
+      // Tight against the bottom of the sticky light header (96px desktop,
+      // 72px mobile). No gap → no clipped content peeking through.
+      className="sticky top-[96px] max-md:top-[72px] z-40 border-b border-hairline"
       style={{
-        backgroundColor: "rgba(250, 251, 252, 0.78)",
-        backdropFilter: "blur(24px) saturate(150%)",
-        WebkitBackdropFilter: "blur(24px) saturate(150%)",
+        backgroundColor: "rgba(250, 251, 252, 0.82)",
+        backdropFilter: "blur(20px) saturate(150%)",
+        WebkitBackdropFilter: "blur(20px) saturate(150%)",
       }}
     >
       <div className="mx-auto max-w-[1600px] flex flex-wrap items-center gap-3 px-12 py-4 max-md:px-4">

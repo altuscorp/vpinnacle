@@ -286,13 +286,13 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="text-cta text-white px-7 py-3.5 rounded-chip transition-transform disabled:opacity-50"
+          className="text-cta text-white px-8 py-4 rounded-chip transition-transform disabled:opacity-50"
           style={{
             background:
               "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
             boxShadow: "0 6px 16px rgba(34, 181, 227, 0.34)",
-            fontWeight: 700,
-            fontSize: 16,
+            fontWeight: 800,
+            fontSize: 18,
             letterSpacing: "0.005em",
           }}
           onMouseEnter={(e) => {
@@ -326,13 +326,14 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <label
         htmlFor={id}
-        className="uppercase font-bold tracking-[0.08em] text-ink-muted"
+        className="uppercase font-black tracking-[0.10em]"
         style={{
           fontFamily: "var(--font-mono-display), ui-monospace, monospace",
-          fontSize: 12,
+          fontSize: 14,
+          color: "var(--color-ink-strong)",
         }}
       >
         {label}
@@ -365,23 +366,23 @@ function MediaSection({
         background: "var(--color-surface-soft)",
       }}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <span
-          className="inline-flex items-center gap-2 uppercase font-black tracking-[0.08em]"
+          className="inline-flex items-center gap-2.5 uppercase font-black tracking-[0.10em]"
           style={{
             fontFamily: "var(--font-display), system-ui, sans-serif",
-            fontSize: 14,
+            fontSize: 17,
             color: "rgb(var(--vp-cyan-deep))",
           }}
         >
-          <ImagePlus size={18} strokeWidth={2.2} />
+          <ImagePlus size={22} strokeWidth={2.2} />
           Attach media
         </span>
         <span
-          className="tabular-nums font-bold"
+          className="tabular-nums font-black"
           style={{
-            fontSize: 12,
-            color: "var(--color-ink-subtle)",
+            fontSize: 14,
+            color: "var(--color-ink-muted)",
           }}
         >
           {media.length} / {MEDIA_SLOT_COUNT}
@@ -439,11 +440,11 @@ function MediaSection({
       </div>
 
       <p
-        className="mt-3"
+        className="mt-4 font-semibold"
         style={{
-          fontSize: 13,
-          color: "var(--color-ink-subtle)",
-          lineHeight: 1.45,
+          fontSize: 14,
+          color: "var(--color-ink-muted)",
+          lineHeight: 1.5,
         }}
       >
         Drop images anywhere in the grid, or click a slot to pick. PNG / JPG up
@@ -479,10 +480,10 @@ function EmptySlot({ onClick }: { onClick: () => void }) {
         e.currentTarget.style.color = "#94a3b8";
       }}
     >
-      <FileImage size={28} strokeWidth={1.8} />
+      <FileImage size={34} strokeWidth={1.8} />
       <span
-        className="uppercase font-bold tracking-[0.08em]"
-        style={{ fontSize: 10 }}
+        className="uppercase font-extrabold tracking-[0.10em]"
+        style={{ fontSize: 12 }}
       >
         Add image
       </span>
@@ -553,23 +554,23 @@ function LinksSection({
         background: "var(--color-surface-soft)",
       }}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <span
-          className="inline-flex items-center gap-2 uppercase font-black tracking-[0.08em]"
+          className="inline-flex items-center gap-2.5 uppercase font-black tracking-[0.10em]"
           style={{
             fontFamily: "var(--font-display), system-ui, sans-serif",
-            fontSize: 14,
+            fontSize: 17,
             color: "rgb(var(--vp-cyan-deep))",
           }}
         >
-          <Link2 size={18} strokeWidth={2.2} />
+          <Link2 size={22} strokeWidth={2.2} />
           Add links
         </span>
         <span
-          className="tabular-nums font-bold"
+          className="tabular-nums font-black"
           style={{
-            fontSize: 12,
-            color: "var(--color-ink-subtle)",
+            fontSize: 14,
+            color: "var(--color-ink-muted)",
           }}
         >
           {links.length} {links.length === 1 ? "link" : "links"}
@@ -596,7 +597,7 @@ function LinksSection({
           aria-label="Add link"
           className="inline-flex items-center justify-center rounded-chip transition-all"
           style={{
-            width: 44,
+            width: 52,
             background:
               "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
             color: "#ffffff",
@@ -604,7 +605,7 @@ function LinksSection({
             boxShadow: "0 4px 12px rgba(34, 181, 227, 0.32)",
           }}
         >
-          <Plus size={18} strokeWidth={2.4} />
+          <Plus size={22} strokeWidth={2.4} />
         </button>
       </div>
 
@@ -614,17 +615,17 @@ function LinksSection({
           <li
             className="flex-1 flex items-center justify-center rounded-chip"
             style={{
-              minHeight: 64,
+              minHeight: 80,
               background:
                 "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
               border: "1.5px dashed #cbd5e1",
               color: "#94a3b8",
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: 15,
+              fontWeight: 700,
             }}
           >
             <span className="inline-flex items-center gap-2">
-              <Link2 size={16} strokeWidth={2} />
+              <Link2 size={18} strokeWidth={2} />
               No links yet — paste a URL above.
             </span>
           </li>
@@ -632,14 +633,14 @@ function LinksSection({
           links.map((url, i) => (
             <li
               key={`${url}-${i}`}
-              className="flex items-center gap-2 px-3 py-2 rounded-chip"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-chip"
               style={{
                 background: "#ffffff",
                 border: "1px solid var(--color-hairline)",
               }}
             >
               <Link2
-                size={14}
+                size={16}
                 strokeWidth={2.2}
                 style={{ color: "rgb(var(--vp-cyan-deep))" }}
               />
@@ -647,8 +648,8 @@ function LinksSection({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 truncate text-ink-strong font-semibold"
-                style={{ fontSize: 14 }}
+                className="flex-1 truncate text-ink-strong font-bold"
+                style={{ fontSize: 16 }}
               >
                 {url}
               </a>
@@ -657,9 +658,9 @@ function LinksSection({
                 onClick={() => onRemove(i)}
                 aria-label="Remove link"
                 className="inline-flex items-center justify-center rounded-full text-ink-subtle hover:text-ink-strong"
-                style={{ width: 24, height: 24 }}
+                style={{ width: 28, height: 28 }}
               >
-                <X size={14} strokeWidth={2.4} />
+                <X size={16} strokeWidth={2.4} />
               </button>
             </li>
           ))
