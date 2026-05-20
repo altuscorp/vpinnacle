@@ -33,7 +33,7 @@ export function SettingsTabs(props: Record<TabKey, ReactNode>) {
   return (
     <Tabs.Root value={tab} onValueChange={(v) => setTab(v as TabKey)}>
       <Tabs.List
-        className="mb-8 flex gap-1 border-b border-[rgba(15,23,42,0.08)]"
+        className="mb-8 flex gap-1 border-b border-[rgba(15,23,42,0.08)] overflow-x-auto max-md:gap-0"
         aria-label="Settings sections"
       >
         {TAB_KEYS.map((k) => (

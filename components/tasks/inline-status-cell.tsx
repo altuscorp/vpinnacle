@@ -130,7 +130,11 @@ export function InlineStatusCell({
         <ul
           role="listbox"
           aria-label="Set task status"
-          className="absolute left-0 mt-1.5 z-50 min-w-[200px] max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
+          // Tier-3 mobile fix — bare `left-0 min-w-[200px]` clipped on narrow
+          // cells near the right edge. `max-md:right-0 max-md:left-auto`
+          // flips the dropdown to the right edge of its anchor on mobile so
+          // it never overflows the viewport. width auto-fits content.
+          className="absolute left-0 max-md:left-auto max-md:right-0 mt-1.5 z-50 min-w-[200px] max-md:min-w-[170px] max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
           style={{
             borderColor: "var(--color-hairline-strong)",
             boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",

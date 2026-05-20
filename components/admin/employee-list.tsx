@@ -179,10 +179,10 @@ export function EmployeeList({
 
       {/* Table */}
       <div
-        className="rounded-section border border-hairline bg-surface-card overflow-hidden"
+        className="rounded-section border border-hairline bg-surface-card overflow-x-auto"
         style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
       >
-        <table className="w-full text-[15px]">
+        <table className="w-full min-w-[720px] text-[15px]">
           <thead>
             <tr
               className="text-left text-[12px] uppercase tracking-[0.08em] text-ink-subtle font-bold border-b border-hairline"

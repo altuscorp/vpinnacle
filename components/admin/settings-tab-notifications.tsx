@@ -71,8 +71,8 @@ export function SettingsTabNotifications({
         mean that event is silent.
       </p>
 
-      <div className="overflow-hidden rounded-2xl border border-[rgba(15,23,42,0.08)] bg-white/70 backdrop-blur-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-[rgba(15,23,42,0.08)] bg-white/70 backdrop-blur-sm">
+        <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="border-b border-[rgba(15,23,42,0.06)] text-left">
               <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-subtle">

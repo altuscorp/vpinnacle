@@ -217,8 +217,11 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         />
       </Field>
 
-      {/* Metadata row — Initiator first now, then Doer · Priority · Due Date */}
-      <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+      {/* Metadata row — Initiator first now, then Doer · Priority · Due Date.
+          Tier-3 mobile fix: collapse straight to 1-col at md (768), the
+          2-col tablet step was too cramped for the multi-doer chip selector
+          and native date pickers. */}
+      <div className="grid grid-cols-4 gap-4 max-md:grid-cols-1 max-md:gap-3">
         <Field id="nt-initiator" label="Initiator" required>
           <select
             id="nt-initiator"
@@ -432,7 +435,7 @@ function DoerMultiSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="flex flex-wrap items-center gap-1.5 min-h-[24px]">
+        <span className="flex flex-wrap items-center gap-1.5 min-h-[24px] max-h-[88px] overflow-y-auto">
           {selected.length === 0 ? (
             <span style={{ color: "var(--color-ink-subtle)" }}>
               Pick one or more…

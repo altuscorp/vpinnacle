@@ -68,11 +68,10 @@ export function VelocityHero({ data }: { data: VelocityPoint[] }) {
 
   return (
     <section
-      className="mx-auto max-w-[1600px] px-12 max-md:px-4 mt-12 bg-surface-card rounded-section"
+      className="mx-auto max-w-[1600px] mt-12 bg-surface-card rounded-section p-8 max-md:p-4 max-md:mt-6"
       style={{
         border: "1px solid var(--color-hairline)",
         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-        padding: "32px",
         opacity: 0,
         animation: "fadeUp 500ms ease-out 300ms forwards",
       }}
@@ -110,7 +109,7 @@ export function VelocityHero({ data }: { data: VelocityPoint[] }) {
 
         <VelocityChart data={weekly} />
 
-        <footer className="mt-6 pt-5 border-t border-hairline flex items-center justify-between gap-6 flex-wrap">
+        <footer className="mt-6 pt-5 border-t border-hairline flex items-center justify-between gap-6 flex-wrap max-md:flex-col max-md:items-start max-md:gap-2">
           <span
             className="uppercase font-bold tracking-[0.12em]"
             style={{ fontSize: 14, color: "var(--color-ink-muted)" }}

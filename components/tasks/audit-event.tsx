@@ -41,7 +41,7 @@ export function AuditEvent({ row, fresh, statusLabels }: Props) {
   const labels = statusLabels ?? STATUS_LABELS_FALLBACK;
 
   return (
-    <div className="text-[14.5px] text-ink" style={{ lineHeight: 1.5 }}>
+    <div className="text-[14.5px] text-ink break-words" style={{ lineHeight: 1.5, overflowWrap: "anywhere" }}>
       <Body row={row} who={who} labels={labels} />
       <div className="mt-1.5 flex items-center gap-2">
         <span className="text-[12.5px] text-ink-subtle tabular-nums">{when}</span>

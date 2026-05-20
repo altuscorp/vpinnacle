@@ -66,12 +66,17 @@ function MyRoleCell({
   );
 }
 
+// Tier-3 mobile audit — flag low-priority columns so we can hide them at
+// `max-md` (768px). On mobile we keep: Task · Status · Doer · Due · Actions.
+// Everything else collapses into the task-detail view via the title link.
+type TaskCol = ColumnDef<TaskListRow> & { meta?: { mobileHide?: boolean } };
+
 function buildColumns(
   employees: { id: string; name: string }[],
   me: { id: string; isAdmin: boolean },
   statusLabels: StatusLabels,
   statusTones: StatusTones,
-): ColumnDef<TaskListRow>[] {
+): TaskCol[] {
   return [
     {
       accessorKey: "title",
@@ -91,6 +96,7 @@ function buildColumns(
       header: "My role",
       cell: ({ row }) => <MyRoleCell row={row.original} me={me} />,
       enableSorting: false,
+      meta: { mobileHide: true },
     },
     {
       accessorKey: "doerName",
@@ -114,6 +120,7 @@ function buildColumns(
     {
       accessorKey: "initiatorName",
       header: "Initiator",
+      meta: { mobileHide: true },
       cell: (info) => {
         const name = info.getValue<string>();
         if (!name) return <span className="text-ink-subtle">—</span>;
@@ -133,6 +140,7 @@ function buildColumns(
     {
       accessorKey: "doerDept",
       header: "Department",
+      meta: { mobileHide: true },
       cell: (info) => (
         <span className="text-body-lg text-ink-muted">
           {info.getValue<string>() ?? "—"}
@@ -142,6 +150,7 @@ function buildColumns(
     {
       accessorKey: "priority",
       header: "Priority",
+      meta: { mobileHide: true },
       cell: (info) => {
         const p = info.getValue<keyof typeof PRIORITY_LABELS>();
         return p === "imp_urgent" ? (
@@ -171,6 +180,7 @@ function buildColumns(
     {
       accessorKey: "subject",
       header: "Subject",
+      meta: { mobileHide: true },
       cell: (info) => (
         <span className="text-body-lg text-ink-muted">
           {info.getValue<string>() ?? "—"}
@@ -180,6 +190,7 @@ function buildColumns(
     {
       accessorKey: "createdAt",
       header: "Created",
+      meta: { mobileHide: true },
       cell: (info) => (
         <span className="text-body-lg text-ink-muted tabular-nums">
           {format(info.getValue<Date>(), "MMM d")}
@@ -198,6 +209,7 @@ function buildColumns(
     {
       accessorKey: "ageDays",
       header: "Age",
+      meta: { mobileHide: true },
       cell: (info) => (
         <span className="text-body-lg text-ink tabular-nums">
           {info.getValue<number>()}d
@@ -248,14 +260,17 @@ export function TaskTable({
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id} className="border-b border-hairline">
-              {hg.headers.map((h) => (
-                <th
-                  key={h.id}
-                  className="px-5 py-4 text-table-head text-left whitespace-nowrap"
-                >
-                  {flexRender(h.column.columnDef.header, h.getContext())}
-                </th>
-              ))}
+              {hg.headers.map((h) => {
+                const hide = (h.column.columnDef as TaskCol).meta?.mobileHide;
+                return (
+                  <th
+                    key={h.id}
+                    className={`px-5 py-4 text-table-head text-left whitespace-nowrap max-md:px-3 max-md:py-3 ${hide ? "max-md:hidden" : ""}`}
+                  >
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
@@ -265,22 +280,26 @@ export function TaskTable({
               key={row.id}
               className="task-row border-b border-hairline last:border-b-0 transition-colors"
             >
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  // max-w + overflow + ellipsis caps long values (titles,
-                  // names, subjects) so they don't push the actions kebab
-                  // off-screen via the wrapper's overflow-x-auto. Short
-                  // content (pills, dates, kebab) is well under 32ch so it
-                  // flows naturally — this is a cap, not a fixed width.
-                  className="px-5 py-4 whitespace-nowrap overflow-hidden text-ellipsis max-w-[32ch]"
-                >
-                  {flexRender(
-                    cell.column.columnDef.cell ?? ((c) => c.getValue()),
-                    cell.getContext(),
-                  )}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell) => {
+                const hide = (cell.column.columnDef as TaskCol).meta?.mobileHide;
+                return (
+                  <td
+                    key={cell.id}
+                    // max-w + overflow + ellipsis caps long values (titles,
+                    // names, subjects) so they don't push the actions kebab
+                    // off-screen via the wrapper's overflow-x-auto. Short
+                    // content (pills, dates, kebab) is well under 32ch so it
+                    // flows naturally — this is a cap, not a fixed width.
+                    // Tier-3 mobile: low-priority columns get max-md:hidden.
+                    className={`px-5 py-4 whitespace-nowrap overflow-hidden text-ellipsis max-w-[32ch] max-md:px-3 max-md:py-3 max-md:max-w-[20ch] ${hide ? "max-md:hidden" : ""}`}
+                  >
+                    {flexRender(
+                      cell.column.columnDef.cell ?? ((c) => c.getValue()),
+                      cell.getContext(),
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

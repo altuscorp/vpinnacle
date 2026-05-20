@@ -27,7 +27,7 @@ export default async function SettingsPage() {
           Admin · Settings
         </div>
         <h1
-          className="mt-1 text-ink-strong"
+          className="mt-1 text-ink-strong max-md:!text-[32px]"
           style={{
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",

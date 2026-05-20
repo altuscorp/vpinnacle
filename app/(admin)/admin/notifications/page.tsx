@@ -83,7 +83,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
         </p>
       </header>
 
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-6 max-md:grid-cols-2">
         <StatCard label="Last 24h" value={stats.total24h} />
         <StatCard label="Failures" value={stats.failures24h} tone="red" />
         <StatCard label="Email" value={stats.byChannel24h.email} />

@@ -312,7 +312,7 @@ export function FilterBar({
                 <a
                   href={buildExportHref("/tasks/export")}
                   download
-                  className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                  className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip max-md:hidden"
                   title="Download current view as CSV"
                   aria-label="Export CSV"
                 >
@@ -324,7 +324,7 @@ export function FilterBar({
                     <a
                       href={buildExportHref("/tasks/export.xlsx")}
                       download
-                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip max-md:hidden"
                       title="Download current view as XLSX"
                       aria-label="Export XLS"
                     >
@@ -334,7 +334,7 @@ export function FilterBar({
                     <a
                       href={buildExportHref("/tasks/export.pdf")}
                       download
-                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip"
+                      className="inline-flex items-center gap-1.5 text-chip text-ink-subtle hover:text-ink-strong transition-colors px-3 py-2 rounded-chip max-md:hidden"
                       title="Download current view as PDF"
                       aria-label="Export PDF"
                     >

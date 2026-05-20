@@ -232,10 +232,10 @@ export function StatusTable({
         </div>
       ) : (
         <div
-          className="bg-surface-card rounded-section border border-hairline overflow-hidden"
+          className="bg-surface-card rounded-section border border-hairline overflow-x-auto"
           style={{ boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)" }}
         >
-          <table className="min-w-full">
+          <table className="min-w-[720px]">
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id} className="border-b border-hairline">
@@ -332,7 +332,7 @@ function FilterBar({
     <div className="mb-4 flex items-center gap-3 flex-wrap">
       {/* Search */}
       <div
-        className="relative flex items-center bg-surface-card border border-hairline rounded-chip pl-3 pr-2 h-10 min-w-[260px] transition-shadow focus-within:border-hairline-strong"
+        className="relative flex items-center bg-surface-card border border-hairline rounded-chip pl-3 pr-2 h-10 min-w-[260px] max-md:min-w-full max-md:w-full transition-shadow focus-within:border-hairline-strong"
         style={{
           boxShadow: query
             ? "0 0 0 3px color-mix(in srgb, var(--color-altus-red) 12%, transparent), 0 1px 2px rgba(15,23,42,0.04)"

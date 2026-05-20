@@ -71,7 +71,7 @@ export function ActivityList({ events, hasMore, loadOlderHref, statusLabels }: P
       {groups.map((group) => (
         <section key={group.key}>
           <h2
-            className="text-table-head sticky -mx-1 px-1 py-2 z-10"
+            className="text-table-head sticky -mx-1 px-1 py-2 z-10 max-md:!top-32"
             style={{
               top: 88,
               backgroundColor: "rgba(250, 251, 252, 0.85)",

@@ -357,7 +357,10 @@ function Lane({
           router.push(target);
         }
       }}
-      className="aging-lane grid items-center gap-4 px-3 py-3.5 rounded-chip transition-all max-md:gap-2"
+      // Tier-3 mobile fix — at 390px the 260+88+1fr+64+28 grid (≈624px min)
+      // overflows the section by ~250px. We collapse to a 2-row stacked
+      // layout via `aging-lane-mobile` (set in globals.css) on `max-md`.
+      className="aging-lane aging-lane-mobile grid items-center gap-4 px-3 py-3.5 rounded-chip transition-all max-md:gap-2 max-md:px-2 max-md:py-3"
       style={{
         gridTemplateColumns: "260px 88px 1fr 64px 28px",
         background: "var(--color-surface-card)",
@@ -555,7 +558,9 @@ function Segment({
             borderWidth: 2,
             boxShadow:
               "0 24px 56px -16px rgba(15, 23, 42, 0.24), 0 8px 24px -8px rgba(15, 23, 42, 0.14)",
-            minWidth: 360,
+            // Tier-3 mobile fix — never exceed the viewport minus the
+            // collisionPadding gutter (12px both sides = 24px).
+            minWidth: "min(360px, calc(100vw - 24px))",
           }}
           onClick={(e) => e.stopPropagation()}
         >

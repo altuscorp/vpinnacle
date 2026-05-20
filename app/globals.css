@@ -1338,6 +1338,65 @@
   color: #dc2626;
 }
 
+/* Mobile menu drawer keyframes — slide in from the left, overlay fades. */
+@keyframes slideMenuIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes fadeOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile-stacked aging lane (Tier-3 audit). At ≤768px the 5-col grid
+   becomes 2 rows: row-1 = avatar/name | total | chevron; row-2 = heat
+   bar spanning all columns. The 88px Total column is dropped since
+   its value is shown inline next to the bar's number. */
+@media (max-width: 768px) {
+  .aging-lane-mobile {
+    grid-template-columns: 1fr 56px 20px !important;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "name total chev"
+      "bar  bar   bar";
+    row-gap: 8px;
+  }
+  .aging-lane-mobile > :nth-child(1) {
+    grid-area: name;
+    min-width: 0;
+  }
+  .aging-lane-mobile > :nth-child(2) {
+    /* Total badge — fits in the 56px slot */
+    grid-area: total;
+    justify-self: end;
+  }
+  .aging-lane-mobile > :nth-child(3) {
+    /* Heat bar — spans full row */
+    grid-area: bar;
+    min-width: 0;
+  }
+  /* The original 4th column ("Avg days") gets folded into the bar row. */
+  .aging-lane-mobile > :nth-child(4) {
+    grid-area: bar;
+    align-self: end;
+    justify-self: end;
+    margin-top: -22px;
+  }
+  .aging-lane-mobile > :nth-child(5) {
+    grid-area: chev;
+  }
+}
+
 /* Aging popover — task list row hover */
 .aging-popover-row {
   background: transparent;

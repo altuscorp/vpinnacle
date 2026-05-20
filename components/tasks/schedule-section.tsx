@@ -150,7 +150,7 @@ export function ScheduleSection({ value, onChange }: Props) {
       </label>
 
       {/* Start row */}
-      <div className="grid grid-cols-[80px_1fr_1fr] gap-3 items-center mb-3 max-sm:grid-cols-1">
+      <div className="grid grid-cols-[80px_1fr_1fr] gap-3 items-center mb-3 max-md:grid-cols-1 max-md:gap-2">
         <span
           className="uppercase font-bold tracking-[0.08em]"
           style={{
@@ -178,7 +178,7 @@ export function ScheduleSection({ value, onChange }: Props) {
       </div>
 
       {/* End row */}
-      <div className="grid grid-cols-[80px_1fr_1fr] gap-3 items-center mb-4 max-sm:grid-cols-1">
+      <div className="grid grid-cols-[80px_1fr_1fr] gap-3 items-center mb-4 max-md:grid-cols-1 max-md:gap-2">
         <span
           className="uppercase font-bold tracking-[0.08em]"
           style={{
@@ -206,7 +206,7 @@ export function ScheduleSection({ value, onChange }: Props) {
       </div>
 
       {/* Repeat row */}
-      <div className="grid grid-cols-[80px_1fr] gap-3 items-center max-sm:grid-cols-1">
+      <div className="grid grid-cols-[80px_1fr] gap-3 items-center max-md:grid-cols-1 max-md:gap-2">
         <span
           className="inline-flex items-center gap-1.5 uppercase font-bold tracking-[0.08em]"
           style={{

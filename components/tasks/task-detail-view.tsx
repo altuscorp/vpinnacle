@@ -352,8 +352,11 @@ export function TaskDetailView({
           </AnimatePresence>
         </div>
 
-        {/* RIGHT RAIL — sticky, three stacked sections */}
-        <aside className="max-lg:order-first">
+        {/* RIGHT RAIL — sticky, three stacked sections. Tier-3 mobile fix:
+            previously `order-first` shoved the entire audit feed above the
+            task body on small screens. Dropped — Status + ActionRail are
+            valuable above, but the audit timeline belongs below the doc. */}
+        <aside>
           <div
             className="lg:sticky lg:top-24 flex flex-col gap-4"
             style={{ scrollMarginTop: "6rem" }}

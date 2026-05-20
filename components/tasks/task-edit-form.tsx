@@ -285,7 +285,7 @@ export function TaskEditForm({
         )}
       </FieldShell>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
         <FieldShell
           label="Priority"
           htmlFor="te-priority"
@@ -474,7 +474,7 @@ export function TaskEditForm({
 
       {isAdmin && (
         <div
-          className="rounded-lg p-4 grid grid-cols-2 gap-3"
+          className="rounded-lg p-4 grid grid-cols-2 gap-3 max-md:grid-cols-1"
           style={{
             background: "var(--vp-cyan-tint)",
             border: "1px solid rgba(34, 181, 227, 0.32)",
