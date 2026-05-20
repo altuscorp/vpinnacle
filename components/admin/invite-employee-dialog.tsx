@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { inviteEmployee } from "@/app/(admin)/admin/employees/actions";
+import { fireToast } from "@/lib/toast";
 
 interface InviteEmployeeDialogProps {
   departmentOptions: string[];
@@ -39,6 +40,13 @@ export function InviteEmployeeDialog({
         setError(res.error ?? "Something went wrong");
         return;
       }
+      // Surface the email-send warning if the account was created but
+      // the invite email failed — the admin needs to know to resend.
+      if (res.warning) {
+        fireToast({ message: res.warning });
+      } else {
+        fireToast({ message: `Invite sent to ${email}.` });
+      }
       reset();
       setOpen(false);
     });
@@ -48,8 +56,12 @@ export function InviteEmployeeDialog({
     <Dialog.Root open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <Dialog.Trigger asChild>
         <button
-          className="rounded-md py-2.5 px-5 text-[14px] font-medium text-white"
-          style={{ background: "linear-gradient(135deg, #E11D2A, #B0141F)" }}
+          className="rounded-md py-2.5 px-5 text-[14px] font-semibold text-white"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
+            boxShadow: "0 4px 14px rgba(34, 181, 227, 0.32)",
+          }}
         >
           + Invite employee
         </button>
@@ -136,8 +148,12 @@ export function InviteEmployeeDialog({
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md py-2.5 px-5 text-[14px] font-medium text-white disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #E11D2A, #B0141F)" }}
+                className="rounded-md py-2.5 px-5 text-[14px] font-semibold text-white disabled:opacity-50"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
+                  boxShadow: "0 4px 14px rgba(34, 181, 227, 0.32)",
+                }}
               >
                 {pending ? "Sending…" : "Send invite"}
               </button>

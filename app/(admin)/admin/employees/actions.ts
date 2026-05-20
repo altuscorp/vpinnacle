@@ -23,6 +23,58 @@ import {
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 import { sendInviteEmail } from "@/lib/email/resend";
 
+/** Resolve the public site URL exactly once. Falls back to the prod
+ *  Vercel host so a missing `NEXT_PUBLIC_SITE_URL` in dev doesn't yield
+ *  `"undefined/welcome"` (which Firebase would reject). */
+function requireSiteUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromEnv && fromEnv.length > 0) return fromEnv.replace(/\/+$/, "");
+  return "https://vpinnacle-delta.vercel.app";
+}
+
+/** Run an async function up to `tries` times with linear backoff. Throws
+ *  the last error if all attempts fail. */
+async function retry<T>(
+  fn: () => Promise<T>,
+  { tries, delayMs }: { tries: number; delayMs: number },
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < tries - 1) {
+        await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/** Map common firebase-admin auth errors to admin-friendly copy. Returns
+ *  null when the error code is unrecognised so the caller can fall back
+ *  to the raw message. */
+function translateFirebaseAdminError(err: unknown): string | null {
+  const code = (err as { code?: string })?.code;
+  switch (code) {
+    case "auth/email-already-exists":
+      return "An account already exists with this email in Firebase. Reach out so I can clean up the orphan and retry.";
+    case "auth/invalid-email":
+      return "That email isn't in a format Firebase accepts.";
+    case "auth/user-disabled":
+      return "This Firebase account is disabled — reactivate it before inviting again.";
+    case "auth/user-not-found":
+      return "Firebase doesn't have an account for this email yet.";
+    case "auth/insufficient-permission":
+      return "The Firebase service account is missing the permissions needed to create users. Check FIREBASE_CLIENT_EMAIL's IAM role.";
+    case "auth/internal-error":
+      return "Firebase had an internal error. Retry in a few seconds.";
+    default:
+      return null;
+  }
+}
+
 /**
  * Look up a department row by name (case-insensitive, trimmed). Returns
  * the row if found, or null if the input is empty / unmatched. Used by
@@ -46,14 +98,19 @@ async function resolveDepartmentByName(
 export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
   ok: boolean;
   id?: string;
+  /** Set when the row + Firebase user were created OK but the invite email
+   *  failed to send. The admin can re-send from the row's overflow menu. */
+  warning?: string;
   error?: string;
 }> {
   const me = await requireAdmin();
 
   const parsed = InviteEmployeeSchema.parse(input);
 
+  // Case-insensitive dup check — historical imports may have mixed-case
+  // emails even though new ones are normalized by Zod.
   const existing = await db.query.employees.findFirst({
-    where: eq(employees.email, parsed.email),
+    where: sql`lower(${employees.email}) = ${parsed.email}`,
   });
   if (existing) {
     return { ok: false, error: "An employee with this email already exists." };
@@ -70,15 +127,27 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
     });
     fbUid = fbUser.uid;
   } catch (err: any) {
-    return { ok: false, error: `Firebase: ${err.message ?? err}` };
+    return {
+      ok: false,
+      error: translateFirebaseAdminError(err) ?? `Firebase: ${err.message ?? err}`,
+    };
   }
 
-  // 2. Set the custom claim required by Supabase Third-Party Auth
-  //    (also set by the Cloud Function, but belt-and-suspenders for early use)
+  // 2. Set the custom claim required by Supabase Third-Party Auth. Retry
+  //    a few times with backoff before giving up — the original "the
+  //    Cloud Function will retry" assumption was wrong (no such function
+  //    exists in this repo) and a silent failure here locks the user out
+  //    of RLS-protected reads.
   try {
-    await auth.setCustomUserClaims(fbUid, { role: "authenticated" });
-  } catch {
-    // Continue — the Cloud Function will retry
+    await retry(
+      () => auth.setCustomUserClaims(fbUid, { role: "authenticated" }),
+      { tries: 3, delayMs: 250 },
+    );
+  } catch (err) {
+    console.error(
+      `[inviteEmployee] setCustomUserClaims failed for ${fbUid} — continuing without role claim`,
+      err,
+    );
   }
 
   // Resolve the matching department FK (case-insensitive) so the new
@@ -113,21 +182,28 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
     return { ok: false, error: "DB: insert returned no row" };
   }
 
-  // 4. Generate the password-reset (invite) link and email it
+  // 4. Generate the password-reset (invite) link and email it. We DON'T
+  //    roll back the row + Firebase user if the email fails — the admin
+  //    can re-send from the row's overflow menu. But we DO surface the
+  //    failure to the caller via `warning` so they know to retry.
+  let emailWarning: string | undefined;
   try {
     const link = await auth.generatePasswordResetLink(parsed.email, {
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/welcome`,
+      url: `${requireSiteUrl()}/welcome?intent=invite`,
     });
-    await sendInviteEmail({
+    const { error: sendError } = await sendInviteEmail({
       email:       parsed.email,
       inviteeName: parsed.name,
       inviterName: me.name,
       inviteLink:  link,
     });
+    if (sendError) {
+      emailWarning = `Created the account but the invite email failed: ${sendError}. Use "Resend invite" to retry.`;
+      console.error("[inviteEmployee] sendInviteEmail returned error", sendError);
+    }
   } catch (err: any) {
-    // Don't roll back — the employee + Firebase user are persisted.
-    // Admin can re-send the invite from the UI.
-    console.error("Invite email failed", err);
+    emailWarning = `Created the account but couldn't generate the invite link: ${err?.message ?? err}. Use "Resend invite" to retry.`;
+    console.error("[inviteEmployee] generatePasswordResetLink/sendInviteEmail threw", err);
   }
 
   try {
@@ -148,7 +224,7 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
   }
 
   revalidatePath("/admin/employees");
-  return { ok: true, id: inserted.id };
+  return { ok: true, id: inserted.id, warning: emailWarning };
 }
 
 export async function editEmployee(
@@ -271,7 +347,7 @@ export async function resendInvite(employeeId: string): Promise<{ ok: boolean; e
   if (emp.joinedAt !== null) return { ok: false, error: "Employee has already joined." };
   try {
     const link = await getFirebaseAdminAuth().generatePasswordResetLink(emp.email, {
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/welcome`,
+      url: `${requireSiteUrl()}/welcome?intent=invite`,
     });
     const { error } = await sendInviteEmail({
       email:       emp.email,
@@ -281,7 +357,7 @@ export async function resendInvite(employeeId: string): Promise<{ ok: boolean; e
     });
     if (error) return { ok: false, error };
   } catch (err: any) {
-    return { ok: false, error: err.message ?? String(err) };
+    return { ok: false, error: translateFirebaseAdminError(err) ?? (err.message ?? String(err)) };
   }
 
   try {

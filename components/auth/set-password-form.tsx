@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
 import {
@@ -20,13 +21,31 @@ import { PasswordStrength, scorePassword } from "./password-strength";
 
 type Status = "loading" | "ready" | "submitting" | "done" | "error";
 
+/** Map Firebase auth error codes to copy users can act on. */
+function translateFirebaseError(err: unknown): string {
+  const code = (err as { code?: string })?.code;
+  switch (code) {
+    case "auth/weak-password":
+      return "Firebase rejected that password — try at least 8 characters with a number and a symbol.";
+    case "auth/expired-action-code":
+      return "This link has expired. Ask your admin to resend it.";
+    case "auth/invalid-action-code":
+      return "This link is no longer valid — it may have already been used. Ask your admin to resend it.";
+    case "auth/user-disabled":
+      return "This account is disabled. Ask your admin to reactivate it.";
+    case "auth/user-not-found":
+      return "We couldn't find an account for this link. Ask your admin to invite you again.";
+    case "auth/network-request-failed":
+      return "Network hiccup. Check your connection and try again.";
+    default:
+      return "Couldn't save your password — try the link again, or request a new one.";
+  }
+}
+
 export function SetPasswordForm() {
   const router = useRouter();
   const params = useSearchParams();
   const oobCode = params.get("oobCode");
-  const isInvite =
-    params.get("mode") === "resetPassword" &&
-    params.get("continueUrl")?.includes("/welcome");
 
   const [status, setStatus] = useState<Status>("loading");
   const [email, setEmail] = useState<string | null>(null);
@@ -48,11 +67,9 @@ export function SetPasswordForm() {
         setEmail(verifiedEmail);
         setStatus("ready");
       })
-      .catch(() => {
+      .catch((err) => {
         setStatus("error");
-        setError(
-          "This link has expired or already been used. Ask your admin to resend it.",
-        );
+        setError(translateFirebaseError(err));
       });
   }, [oobCode]);
 
@@ -75,11 +92,11 @@ export function SetPasswordForm() {
       try {
         await confirmPasswordReset(getFirebaseAuth(), oobCode, pw);
 
-        // Invite flow: auto-sign-in so the new hire lands on /welcome
-        // without a second credential prompt. Genuine resets skip the
-        // auto-sign-in and bounce to /login — security-conscious
-        // behaviour, and the founder asked for it explicitly.
-        if (isInvite) {
+        // Always auto-sign-in after a successful password set — the
+        // user just proved they own the email, no need to make them
+        // type it again. Drops the brittle isInvite heuristic that
+        // sniffed continueUrl substrings.
+        try {
           const cred = await signInWithEmailAndPassword(
             getFirebaseAuth(),
             email,
@@ -94,13 +111,19 @@ export function SetPasswordForm() {
           if (!res.ok) throw new Error("session-exchange-failed");
           setStatus("done");
           router.replace("/welcome" as Route);
-        } else {
+        } catch (signInErr) {
+          // Password was set, but auto-sign-in failed — fall back to
+          // sending the user to /login with their password ready.
+          console.warn(
+            "[set-password] auto-sign-in failed; routing to /login",
+            signInErr,
+          );
           setStatus("done");
           router.replace("/login" as Route);
         }
-      } catch {
+      } catch (err) {
         setStatus("error");
-        setError("Couldn't save your password — try the link again.");
+        setError(translateFirebaseError(err));
       }
     });
   }
@@ -122,7 +145,32 @@ export function SetPasswordForm() {
   }
 
   if (status === "error" && !email) {
-    return <AuthError message={error} />;
+    return (
+      <div className="flex flex-col gap-4">
+        <AuthError message={error} />
+        <div
+          className="flex flex-col gap-2 text-center pt-2"
+          style={{
+            borderTop: "1px solid rgba(15, 23, 42, 0.06)",
+            paddingTop: 16,
+          }}
+        >
+          <Link
+            href={"/forgot-password" as Route}
+            className="auth-link font-semibold"
+          >
+            Request a new reset link →
+          </Link>
+          <Link
+            href={"/login" as Route}
+            className="auth-link"
+            style={{ fontSize: 13 }}
+          >
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const tier = scorePassword(pw);
@@ -230,7 +278,7 @@ export function SetPasswordForm() {
           <p
             className="mt-2 text-[13px] font-medium"
             style={{
-              color: "var(--color-altus-red)",
+              color: "rgb(14, 165, 233)",
               animation: "errorSlide 220ms ease both",
             }}
           >

@@ -22,9 +22,9 @@ export function BrandStack({
           className="inline-flex items-center text-brand-pill text-white px-3 py-1 rounded-brand"
           style={{
             background:
-              "linear-gradient(135deg, var(--color-altus-red), var(--color-altus-red-deep))",
+              "linear-gradient(135deg, rgb(34, 181, 227), rgb(14, 165, 233))",
             animation: "pillShimmer 4s ease-in-out infinite",
-            boxShadow: "0 4px 16px rgba(225, 29, 42, 0.35)",
+            boxShadow: "0 4px 16px rgba(34, 181, 227, 0.38)",
           }}
         >
           By Altus Corp
@@ -46,7 +46,7 @@ export function BrandStack({
             display: "inline-block",
             paddingRight: "0.18em",
             background:
-              "linear-gradient(135deg, #ff5560, var(--color-altus-red))",
+              "linear-gradient(135deg, rgb(103, 232, 249), rgb(14, 165, 233))",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -60,13 +60,13 @@ export function BrandStack({
         className="mx-auto mt-5 mb-3 h-px w-16"
         style={{
           background:
-            "linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.25), transparent)",
+            "linear-gradient(90deg, transparent, rgba(34, 181, 227, 0.45), transparent)",
         }}
       />
 
       <div
         className="text-table-head"
-        style={{ color: "var(--color-altus-red)", letterSpacing: "0.14em" }}
+        style={{ color: "rgb(14, 165, 233)", letterSpacing: "0.14em" }}
       >
         {eyebrow}
       </div>
