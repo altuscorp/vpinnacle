@@ -328,6 +328,13 @@ export async function createTask(input: CreateTaskInput): Promise<
             priority: parsed.priority,
             dueAt: parsed.dueAt,
             tags: parsed.tags ?? null,
+            // Tier-4 — GCal-style scheduling fields. All null on a one-off
+            // task; the form sends real values when the user opens the
+            // Schedule section.
+            startsAt: parsed.startsAt ?? null,
+            endsAt: parsed.endsAt ?? null,
+            allDay: parsed.allDay ?? false,
+            recurrence: parsed.recurrence ?? null,
             createdById: me.id,
             shortId,
             // status defaults to "not_started"; archived defaults to false;

@@ -9,9 +9,11 @@ import {
   PRIORITY_LABELS,
   TASK_SUBJECTS,
   type TaskPriority,
+  type TaskRecurrence,
 } from "@/db/enums";
 import { createTask } from "@/app/(app)/tasks/actions";
 import { EmployeeAvatar } from "@/components/ui/employee-avatar";
+import { ScheduleSection, type ScheduleValue } from "./schedule-section";
 
 type EmployeeOption = { id: string; name: string };
 
@@ -56,6 +58,12 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
   );
   const [tags, setTags] = React.useState<string[]>([]);
   const [tagInput, setTagInput] = React.useState("");
+  const [schedule, setSchedule] = React.useState<ScheduleValue>({
+    startsAt: null,
+    endsAt: null,
+    allDay: false,
+    recurrence: null,
+  });
   // Default due: 7 days out.
   const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const [dueAt, setDueAt] = React.useState(
@@ -148,6 +156,14 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         subject: subject || null,
         notes: composedNotes,
         tags: finalTags.length > 0 ? finalTags : null,
+        // Tier-4 — GCal-style scheduling. All fields nullable; only ship
+        // values when the user actually filled in the Schedule section.
+        startsAt: schedule.startsAt
+          ? schedule.startsAt.toISOString()
+          : null,
+        endsAt: schedule.endsAt ? schedule.endsAt.toISOString() : null,
+        allDay: schedule.allDay,
+        recurrence: schedule.recurrence,
       });
       if (!result.ok) {
         setError(result.error);
@@ -308,6 +324,10 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           onRemove={removeTag}
         />
       </Field>
+
+      {/* Schedule — GCal-style start/end + recurrence. Internal metadata
+          only; not synced to any actual calendar API. */}
+      <ScheduleSection value={schedule} onChange={setSchedule} />
 
       {/* Media + Links — side by side on desktop */}
       <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">

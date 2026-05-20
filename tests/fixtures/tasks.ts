@@ -110,6 +110,11 @@ function task(partial: Partial<Task>): Task {
     tags: partial.tags ?? null,
     approvalStatus: partial.approvalStatus ?? null,
     revisedTargetDate: partial.revisedTargetDate ?? null,
+    // Tier-4 (2026-05-20) GCal-style scheduling fields.
+    startsAt: partial.startsAt ?? null,
+    endsAt: partial.endsAt ?? null,
+    allDay: partial.allDay ?? false,
+    recurrence: partial.recurrence ?? null,
   };
 }
 

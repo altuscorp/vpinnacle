@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { TASK_PRIORITIES, APPROVAL_STATUSES } from "@/db/enums";
+import {
+  TASK_PRIORITIES,
+  APPROVAL_STATUSES,
+  TASK_RECURRENCES,
+} from "@/db/enums";
 
 const uuid = z.string().guid("Must be a UUID");
 const isoDateToDate = z
@@ -33,10 +37,21 @@ export const CreateTaskSchema = z
       .nullable()
       .optional()
       .default(null),
+    // Tier-4 — GCal-style scheduling. All optional; one-off tasks
+    // (the common case) leave them null.
+    startsAt: isoDateToDate.nullable().optional().default(null),
+    endsAt: isoDateToDate.nullable().optional().default(null),
+    allDay: z.boolean().optional().default(false),
+    recurrence: z.enum(TASK_RECURRENCES).nullable().optional().default(null),
   })
   .refine(
     (v) => Boolean(v.doerId) !== Boolean(v.doerIds && v.doerIds.length > 0),
     "Provide exactly one of doerId or doerIds",
+  )
+  .refine(
+    (v) =>
+      !(v.startsAt && v.endsAt) || v.endsAt.getTime() >= v.startsAt.getTime(),
+    "End time must be at or after start time",
   );
 
 export type CreateTaskInput = z.input<typeof CreateTaskSchema>;
@@ -61,11 +76,21 @@ export const EditTaskFieldsSchema = z
       .max(20)
       .nullable()
       .optional(),
+    // Tier-4 — scheduling fields, all editable in the same patch.
+    startsAt: isoDateToDate.nullable().optional(),
+    endsAt: isoDateToDate.nullable().optional(),
+    allDay: z.boolean().optional(),
+    recurrence: z.enum(TASK_RECURRENCES).nullable().optional(),
   })
   .strict() // reject unknown keys
   .refine(
     (obj) => Object.keys(obj).length > 0,
     "At least one field must be provided",
+  )
+  .refine(
+    (v) =>
+      !(v.startsAt && v.endsAt) || v.endsAt.getTime() >= v.startsAt.getTime(),
+    "End time must be at or after start time",
   );
 
 /** Admin-only — set or clear the verdict on a task. Pair with status edits

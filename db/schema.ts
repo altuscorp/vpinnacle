@@ -154,6 +154,19 @@ export const tasks = pgTable(
     tags: text("tags").array(),
     approvalStatus: approvalStatusEnum("approval_status"),
     revisedTargetDate: timestamp("revised_target_date", { withTimezone: true }),
+    // Tier-4 (2026-05-20) — Google-Calendar-style internal scheduling.
+    // NOT synced to any actual calendar API; these are just metadata
+    // fields the team uses to plan when work happens.
+    //   startsAt / endsAt — explicit time block when the task is on the
+    //     calendar. Independent of due_at (which is the deadline).
+    //   allDay — when true, the time portion of starts_at / ends_at is
+    //     decorative; UI shows "All day" instead of clock times.
+    //   recurrence — repeat pattern token ("none" | "daily" | "weekly" |
+    //     "monthly" | "yearly"). Null treated as "none".
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    allDay: boolean("all_day").notNull().default(false),
+    recurrence: text("recurrence"),
   },
   (t) => [
     index("tasks_doer_created_idx").on(t.doerId, t.createdAt),

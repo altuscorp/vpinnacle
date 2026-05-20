@@ -32,6 +32,10 @@ function task(partial: Partial<Task>): Task {
     tags: null,
     approvalStatus: null,
     revisedTargetDate: null,
+    startsAt: null,
+    endsAt: null,
+    allDay: false,
+    recurrence: null,
     ...partial,
   };
 }

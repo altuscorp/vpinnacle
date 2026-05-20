@@ -310,6 +310,19 @@ export function TaskDetailView({
                     tags: task.tags,
                     approvalStatus: task.approvalStatus,
                     revisedTargetDate: task.revisedTargetDate,
+                    startsAt: task.startsAt,
+                    endsAt: task.endsAt,
+                    allDay: task.allDay,
+                    // Recurrence text → narrowed to TaskRecurrence union; the
+                    // app-level validator restricts writes to those values
+                    // so anything outside is safely treated as null.
+                    recurrence:
+                      task.recurrence === "daily" ||
+                      task.recurrence === "weekly" ||
+                      task.recurrence === "monthly" ||
+                      task.recurrence === "yearly"
+                        ? task.recurrence
+                        : null,
                   }}
                   expectedUpdatedAt={expectedUpdatedAt}
                   isAdmin={me?.isAdmin ?? false}

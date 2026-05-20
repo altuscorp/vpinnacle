@@ -233,6 +233,11 @@ export type TaskDetail = {
   tags: string[] | null;
   approvalStatus: "approved" | "not_approved" | "cancelled" | "transferred" | null;
   revisedTargetDate: Date | null;
+  // Tier-4 (2026-05-20) — GCal-style scheduling
+  startsAt: Date | null;
+  endsAt: Date | null;
+  allDay: boolean;
+  recurrence: string | null;
 };
 
 export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
@@ -263,6 +268,10 @@ export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
       tags: tasks.tags,
       approvalStatus: tasks.approvalStatus,
       revisedTargetDate: tasks.revisedTargetDate,
+      startsAt: tasks.startsAt,
+      endsAt: tasks.endsAt,
+      allDay: tasks.allDay,
+      recurrence: tasks.recurrence,
     })
     .from(tasks)
     .leftJoin(doerEmp,    eq(tasks.doerId,      doerEmp.id))

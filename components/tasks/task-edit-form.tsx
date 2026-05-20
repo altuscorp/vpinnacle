@@ -11,6 +11,7 @@ import {
   APPROVAL_STATUSES,
   type TaskPriority,
   type ApprovalStatus,
+  type TaskRecurrence,
 } from "@/db/enums";
 import {
   editTaskFields,
@@ -18,6 +19,7 @@ import {
   setTaskRevisedTargetDate,
 } from "@/app/(app)/tasks/actions";
 import { fireToast } from "@/lib/toast";
+import { ScheduleSection, type ScheduleValue } from "./schedule-section";
 
 interface Props {
   taskId: string;
@@ -32,6 +34,11 @@ interface Props {
     tags: string[] | null;
     approvalStatus: ApprovalStatus | null;
     revisedTargetDate: Date | null;
+    // Tier-4 (2026-05-20) — GCal-style scheduling.
+    startsAt: Date | null;
+    endsAt: Date | null;
+    allDay: boolean;
+    recurrence: TaskRecurrence | null;
   };
   /** Used for the optimistic-lock — must be the row's current updated_at. */
   expectedUpdatedAt: string;
@@ -118,6 +125,12 @@ export function TaskEditForm({
   );
   const [tags, setTags] = useState<string[]>(initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
+  const [schedule, setSchedule] = useState<ScheduleValue>({
+    startsAt: initial.startsAt,
+    endsAt: initial.endsAt,
+    allDay: initial.allDay,
+    recurrence: initial.recurrence,
+  });
 
   // Admin-only state.
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | "">(
@@ -182,6 +195,11 @@ export function TaskEditForm({
           priority,
           dueAt: dueIso,
           tags: finalTags.length > 0 ? finalTags : null,
+          // Tier-4 — scheduling fields. Ship the ISO string or null.
+          startsAt: schedule.startsAt ? schedule.startsAt.toISOString() : null,
+          endsAt: schedule.endsAt ? schedule.endsAt.toISOString() : null,
+          allDay: schedule.allDay,
+          recurrence: schedule.recurrence,
         },
         expectedUpdatedAt,
       );
@@ -450,6 +468,9 @@ export function TaskEditForm({
           </div>
         )}
       </FieldShell>
+
+      {/* Schedule — GCal-style start/end + recurrence. Internal only. */}
+      <ScheduleSection value={schedule} onChange={setSchedule} />
 
       {isAdmin && (
         <div

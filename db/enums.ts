@@ -63,6 +63,26 @@ export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 // text remains valid in the DB (the column is `text`) — older tasks may
 // hold values outside this list; the dropdown adds "Other…" as an escape
 // hatch when needed.
+// Tier-4 (2026-05-20) — recurrence options for the GCal-style scheduling
+// block on each task. Stored as text on tasks.recurrence; null/'none'
+// mean a one-off. Not wired to any real calendar (no Google API yet).
+export const TASK_RECURRENCES = [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+] as const;
+export type TaskRecurrence = (typeof TASK_RECURRENCES)[number];
+
+export const RECURRENCE_LABELS: Record<TaskRecurrence, string> = {
+  none:    "Does not repeat",
+  daily:   "Daily",
+  weekly:  "Weekly",
+  monthly: "Monthly",
+  yearly:  "Yearly",
+};
+
 export const TASK_SUBJECTS = [
   "Marketing",
   "Exhibition",
