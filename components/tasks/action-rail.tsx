@@ -213,8 +213,8 @@ export function ActionRail({
       node: (
         <ActionCard
           icon={<Pencil size={16} strokeWidth={2.4} />}
-          label="Edit fields"
-          subtext="Change title, subject, due date, priority."
+          label="Edit Task"
+          subtext="Change client name, subject, due date, priority."
           tone="ink"
           onClick={onStartEdit}
           disabled={pending}

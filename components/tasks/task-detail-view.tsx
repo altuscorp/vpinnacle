@@ -234,7 +234,7 @@ export function TaskDetailView({
                 onClick={() => setEditing(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[14px] font-semibold text-ink-soft border border-hairline bg-white/70 hover:bg-white hover:border-hairline-strong transition-all"
               >
-                Edit task →
+                Edit Task →
               </button>
             </div>
           )}
@@ -264,7 +264,7 @@ export function TaskDetailView({
                       letterSpacing: "-0.02em",
                     }}
                   >
-                    Edit task
+                    Edit Task
                   </h1>
                   <span className="text-[12.5px] text-ink-subtle uppercase tracking-[0.1em] font-bold">
                     Editing

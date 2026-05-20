@@ -144,8 +144,8 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      {/* Title — full width hero field */}
-      <Field id="nt-title" label="Title" required>
+      {/* Client Name — full width hero field (was: Title) */}
+      <Field id="nt-title" label="Client Name" required>
         <input
           id="nt-title"
           type="text"
@@ -154,18 +154,18 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="nt-input"
-          placeholder="e.g. Verify KYC for borrower 4471"
+          placeholder="e.g. John Doe · ABC Loans Pvt. Ltd."
         />
       </Field>
 
-      {/* Metadata row — Doer · Initiator · Priority · Due */}
+      {/* Metadata row — Initiator first now, then Doer · Priority · Due Date */}
       <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
-        <Field id="nt-doer" label="Doer" required>
+        <Field id="nt-initiator" label="Initiator" required>
           <select
-            id="nt-doer"
+            id="nt-initiator"
             required
-            value={doerId}
-            onChange={(e) => setDoerId(e.target.value)}
+            value={initiatorId}
+            onChange={(e) => setInit(e.target.value)}
             className="nt-input"
           >
             <option value="">Select an employee…</option>
@@ -176,12 +176,12 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
             ))}
           </select>
         </Field>
-        <Field id="nt-initiator" label="Initiator" required>
+        <Field id="nt-doer" label="Doer" required>
           <select
-            id="nt-initiator"
+            id="nt-doer"
             required
-            value={initiatorId}
-            onChange={(e) => setInit(e.target.value)}
+            value={doerId}
+            onChange={(e) => setDoerId(e.target.value)}
             className="nt-input"
           >
             <option value="">Select an employee…</option>
@@ -206,7 +206,7 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
             ))}
           </select>
         </Field>
-        <Field id="nt-due" label="Due" required>
+        <Field id="nt-due" label="Due Date" required>
           <input
             id="nt-due"
             type="date"
@@ -218,32 +218,21 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
         </Field>
       </div>
 
-      {/* Subject + Description — 2-col on desktop, stack on mobile */}
-      <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
-        <Field id="nt-subject" label="Subject">
-          <input
-            id="nt-subject"
-            type="text"
-            maxLength={120}
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="nt-input"
-            placeholder="Optional category (e.g. KYC, Disbursement…)"
-          />
-        </Field>
-        <Field id="nt-notes" label="Internal notes">
-          <textarea
-            id="nt-notes"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="nt-input resize-y"
-            placeholder="Notes only the team sees…"
-          />
-        </Field>
-      </div>
+      {/* Subject · Task Description · Initiator Notes — each full-width
+          single column, stacked top-to-bottom per spec. */}
+      <Field id="nt-subject" label="Subject">
+        <input
+          id="nt-subject"
+          type="text"
+          maxLength={120}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="nt-input"
+          placeholder="Optional category (e.g. KYC, Disbursement…)"
+        />
+      </Field>
 
-      <Field id="nt-desc" label="Description">
+      <Field id="nt-desc" label="Task Description">
         <textarea
           id="nt-desc"
           rows={4}
@@ -251,6 +240,17 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           onChange={(e) => setDesc(e.target.value)}
           className="nt-input resize-y"
           placeholder="What needs to happen, in detail…"
+        />
+      </Field>
+
+      <Field id="nt-notes" label="Initiator Notes">
+        <textarea
+          id="nt-notes"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="nt-input resize-y"
+          placeholder="Notes only the team sees…"
         />
       </Field>
 
@@ -307,7 +307,7 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
               "0 6px 16px rgba(34, 181, 227, 0.34)";
           }}
         >
-          {pending ? "Creating…" : "Create task"}
+          {pending ? "Creating…" : "Create Task"}
         </button>
       </div>
     </form>
