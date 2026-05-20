@@ -1,10 +1,10 @@
 import "server-only";
-import { count, and, eq, isNull, lt, sql, desc } from "drizzle-orm";
+import { count, and, eq, inArray, isNull, lt, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { employees, tasks, taskEvents } from "@/db/schema";
 import type { ActivityRow } from "@/lib/transforms/activity";
 import type { TaskEventType } from "@/lib/events";
-import type { TaskStatus } from "@/db/enums";
+import { PENDING_STATUSES, type TaskStatus } from "@/db/enums";
 
 export interface AdminOverview {
   activeEmployees: number;
@@ -17,8 +17,11 @@ export interface AdminOverview {
 export async function getAdminOverview(): Promise<AdminOverview> {
   const [activeRow]      = await db.select({ n: count() }).from(employees).where(eq(employees.isActive, true));
   const [pendingInvites] = await db.select({ n: count() }).from(employees).where(and(eq(employees.isActive, true), isNull(employees.joinedAt)));
-  const [openTasks]      = await db.select({ n: count() }).from(tasks).where(and(eq(tasks.archived, false), sql`${tasks.status} IN ('not_started','initiated','follow_up','need_help')`));
-  const [overdueTasks]   = await db.select({ n: count() }).from(tasks).where(and(eq(tasks.archived, false), sql`${tasks.status} IN ('not_started','initiated','follow_up','need_help')`, lt(tasks.dueAt, new Date())));
+  // Tier-3 — count every pending status (incl. new need_info / follow_up_1/2/3)
+  // by sourcing from the canonical PENDING_STATUSES export.
+  const pendingStatusList = PENDING_STATUSES as readonly TaskStatus[];
+  const [openTasks]      = await db.select({ n: count() }).from(tasks).where(and(eq(tasks.archived, false), inArray(tasks.status, pendingStatusList)));
+  const [overdueTasks]   = await db.select({ n: count() }).from(tasks).where(and(eq(tasks.archived, false), inArray(tasks.status, pendingStatusList), lt(tasks.dueAt, new Date())));
 
   const recentRows = await db
     .select({

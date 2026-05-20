@@ -1,13 +1,14 @@
 import type { Task } from "@/db/schema";
 import type { AgingByDate } from "@/lib/types";
-import { AGE_BUCKETS, type AgeBucketId } from "@/db/enums";
+import {
+  AGE_BUCKETS,
+  PENDING_STATUSES as CANONICAL_PENDING_STATUSES,
+  type AgeBucketId,
+} from "@/db/enums";
 
-const PENDING_STATUSES = new Set([
-  "not_started",
-  "initiated",
-  "follow_up",
-  "need_help",
-]);
+// Sourced from the canonical PENDING_STATUSES export so Tier-3 statuses
+// (need_info / follow_up_1/2/3) automatically count toward aging.
+const PENDING_STATUSES = new Set<string>(CANONICAL_PENDING_STATUSES);
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

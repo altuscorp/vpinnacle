@@ -361,14 +361,19 @@ const CHIP_PALETTE: Record<ChipTone, { bg: string; fg: string; border: string }>
 };
 
 /**
- * Maps the 9 task statuses to a chip tone.  Kept here so every
- * status-changed-flavored template renders the same chip.
+ * Maps the 13 task statuses (9 legacy + 4 Tier-3 additions) to a chip
+ * tone. Kept here so every status-changed-flavored template renders
+ * the same chip.
  */
 export const STATUS_TONE_MAP: Record<string, ChipTone> = {
   not_started:  "amber",
   initiated:    "amber",
   follow_up:    "amber",
   need_help:    "red",
+  need_info:    "blue",   // Tier-3
+  follow_up_1:  "amber",  // Tier-3
+  follow_up_2:  "amber",  // Tier-3
+  follow_up_3:  "red",    // Tier-3 — getting urgent
   done:         "green",
   approved:     "green",
   not_approved: "red",
@@ -381,6 +386,10 @@ export const STATUS_LABEL_MAP: Record<string, string> = {
   initiated:    "Initiated",
   follow_up:    "Follow Up",
   need_help:    "Need Help",
+  need_info:    "Need Info",      // Tier-3
+  follow_up_1:  "Follow Up 1",    // Tier-3
+  follow_up_2:  "Follow Up 2",    // Tier-3
+  follow_up_3:  "Follow Up 3",    // Tier-3
   done:         "Done",
   approved:     "Approved",
   not_approved: "Not Approved",

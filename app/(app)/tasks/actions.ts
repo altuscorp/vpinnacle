@@ -51,6 +51,7 @@ import {
   dedupeRecipients,
 } from "@/lib/notifications/dispatch";
 import { deriveShortId, nextShortIdCandidate } from "@/lib/import/short-id";
+import { getStatusDisplayMap } from "@/lib/queries/status-display";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -196,12 +197,25 @@ export async function setTaskStatus(
   });
 
   // Fan-out: every other participant (creator/initiator/doer minus me).
+  // Tier-3 fix — the notification body MUST be JSON meta so email/Slack/
+  // WhatsApp templates can pluck `toStatus` + `fromStatus` and render the
+  // real transition (the templates default `toStatus` to "done" which
+  // made every status_changed email lie). Also resolve the new-status
+  // human label server-side so the title never includes raw enum tokens
+  // like "follow_up_2".
+  const trimmedNote = note?.trim() || undefined;
+  const statusDisplay = await getStatusDisplayMap();
+  const newStatusLabel = statusDisplay[status]?.label ?? status;
   const label = taskLabel({ subject: current.subject, title: current.title });
   await notifyManyForTask(taskId, {
     actorId: me.id,
     kind: "status_changed",
-    title: `${me.name} changed status on '${label}' to ${status}`,
-    body: note?.trim() || null,
+    title: `${me.name} changed status on '${label}' to ${newStatusLabel}`,
+    body: JSON.stringify({
+      toStatus: status,
+      fromStatus: current.status,
+      ...(trimmedNote ? { note: trimmedNote } : {}),
+    }),
     recipients: [current.createdById, current.initiatorId, current.doerId],
   });
 

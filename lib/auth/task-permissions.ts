@@ -79,8 +79,12 @@ export function canApprove(input: TaskPermissionInput): boolean {
 export function canReassign(input: TaskPermissionInput): boolean {
   const role = actorRoleFor(input);
   if (role === "stranger" || role === "creator") return false;
-  const isPending = (["not_started", "initiated", "follow_up", "need_help"] as const)
-    .includes(input.task.status as never);
+  // Tier-3 — sourced from PENDING_STATUSES so new pending values (need_info,
+  // follow_up_1/2/3) allow reassignment for doer + initiator the same way
+  // legacy pending statuses do.
+  const isPending = (PENDING_STATUSES as readonly string[]).includes(
+    input.task.status,
+  );
   if (role === "admin") return isPending || input.task.status === "not_approved";
   return isPending; // doer OR initiator in the pending lane
 }

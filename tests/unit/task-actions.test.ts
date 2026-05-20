@@ -5,6 +5,13 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Tier-3 — actions.ts now imports getStatusDisplayMap (server-only).
+// Stub both so vitest can load the file.
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/queries/status-display", () => ({
+  getStatusDisplayMap: vi.fn(async () => ({})),
+}));
+
 // M2.1 added requireUser import to actions.ts which transitively loads
 // "server-only" — stub it so this old M1.7 test still loads.
 vi.mock("@/lib/auth/current", () => ({

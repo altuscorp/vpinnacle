@@ -4,6 +4,12 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Tier-3 — actions.ts now imports getStatusDisplayMap (server-only).
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/queries/status-display", () => ({
+  getStatusDisplayMap: vi.fn(async () => ({})),
+}));
+
 const { insertCall, queryCall, updateCall, valuesCalls } = vi.hoisted(() => ({
   insertCall: vi.fn(),
   queryCall: vi.fn(),

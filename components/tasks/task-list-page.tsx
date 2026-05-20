@@ -1,14 +1,14 @@
 import { TaskTable } from "./task-table";
 import type { TaskListRow } from "@/lib/types";
-import type { TaskStatus, StatusColorToken } from "@/db/enums";
+import {
+  PENDING_STATUSES as CANONICAL_PENDING_STATUSES,
+  type TaskStatus,
+  type StatusColorToken,
+} from "@/db/enums";
 
 const DONE_STATUSES = new Set<TaskStatus>(["done", "approved"]);
-const PENDING_STATUSES = new Set<TaskStatus>([
-  "not_started",
-  "initiated",
-  "follow_up",
-  "need_help",
-]);
+// Sourced from the canonical export so Tier-3 statuses count correctly.
+const PENDING_STATUSES = new Set<TaskStatus>(CANONICAL_PENDING_STATUSES);
 
 interface KpiSpec {
   key: "total" | "done" | "pending" | "critical";

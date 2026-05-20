@@ -13,7 +13,7 @@ import {
   computeEmployeeStatusTable,
   computeEmployeeAgingTable,
 } from "@/lib/transforms";
-import { AGE_BUCKETS } from "@/db/enums";
+import { AGE_BUCKETS, PENDING_STATUSES } from "@/db/enums";
 import type { TaskStatus } from "@/db/enums";
 import type { AgingHeatmapData } from "@/lib/types";
 
@@ -90,6 +90,16 @@ export async function loadDashboardData(
     );
 
   const isDone = (s: TaskStatus) => s === "done" || s === "approved";
+  // Tier-3 (2026-05-20) — `pending` covers every non-terminal status
+  // EXCEPT the dedicated `need_help`/`need_info` tiles + `not_started`
+  // (which has its own tile). That mirrors computeKpiTotals.
+  const PENDING_SET = new Set<TaskStatus>(PENDING_STATUSES);
+  const isPending = (s: TaskStatus) =>
+    PENDING_SET.has(s) &&
+    s !== "not_started" &&
+    s !== "need_help" &&
+    s !== "need_info";
+  const isNeedHelp = (s: TaskStatus) => s === "need_help" || s === "need_info";
 
   const kpis: KpiSet = {
     total: {
@@ -99,8 +109,8 @@ export async function loadDashboardData(
     },
     pending: {
       current: totals.pending,
-      previous: wow((s) => s === "initiated" || s === "follow_up").previous,
-      sparkline: sparklineFor((s) => s === "initiated" || s === "follow_up"),
+      previous: wow(isPending).previous,
+      sparkline: sparklineFor(isPending),
     },
     notStarted: {
       current: totals.notStarted,
@@ -109,8 +119,8 @@ export async function loadDashboardData(
     },
     needHelp: {
       current: totals.needHelp,
-      previous: wow((s) => s === "need_help").previous,
-      sparkline: sparklineFor((s) => s === "need_help"),
+      previous: wow(isNeedHelp).previous,
+      sparkline: sparklineFor(isNeedHelp),
     },
     done: {
       current: totals.done,
@@ -136,7 +146,9 @@ export async function loadDashboardData(
     6,
   );
 
-  const PENDING_AGES: Set<TaskStatus> = new Set(["not_started", "initiated", "follow_up", "need_help"]);
+  // Aging heatmap shows EVERY pending task (any non-terminal status),
+  // sourced from the canonical enum list so Tier-3 statuses appear.
+  const PENDING_AGES: Set<TaskStatus> = new Set(PENDING_STATUSES);
   const byCell: AgingHeatmapData["byCell"] = {};
   for (const t of periodTasks) {
     if (!PENDING_AGES.has(t.status)) continue;
