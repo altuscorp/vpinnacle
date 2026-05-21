@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, tasks } from "@/lib/db";
 import {
@@ -58,6 +58,28 @@ const UUID_RE =
 
 function isUuid(v: string): boolean {
   return UUID_RE.test(v);
+}
+
+/**
+ * Optimistic-lock predicate that survives Postgres↔JS timestamp drift.
+ *
+ * Postgres stores `timestamptz` at microsecond precision; postgres.js parses
+ * timestamps into JS Date (millisecond precision, sub-ms truncated) and
+ * serializes Date parameters back via `.toISOString()` (also ms). So
+ * `eq(tasks.updated_at, expectedDate)` fails for any row whose `updated_at`
+ * was written by Postgres `now()` (defaultNow inserts, legacy imports, etc.) —
+ * the stored `.123456` never equals the round-tripped `.123000`. Truncating
+ * the stored column to milliseconds before comparing closes the gap without
+ * needing to migrate every row or alter the column type.
+ *
+ * We pass the parameter as an ISO-8601 string with an explicit `::timestamptz`
+ * cast because raw `Date` interpolation inside `sql\`\`` would call
+ * `.toString()` ("Fri May 15 2026 12:43:38 GMT+0530") which Postgres cannot
+ * parse — Drizzle only knows to call `.toISOString()` when the column type
+ * is in scope, which it isn't inside an arbitrary SQL fragment.
+ */
+function optimisticLockMatches(expectedDate: Date) {
+  return sql`date_trunc('milliseconds', ${tasks.updatedAt}) = ${expectedDate.toISOString()}::timestamptz`;
 }
 
 /**
@@ -182,7 +204,7 @@ export async function setTaskStatus(
       // done into rework, clear it.
       completedAt: status === "done" ? now : current.status === "done" ? null : current.completedAt,
     })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) return { ok: false, error: "stale" };
@@ -499,7 +521,7 @@ export async function editTaskFields(
   const updated = await db
     .update(tasks)
     .set({ ...(diff as Partial<typeof tasks.$inferInsert>), updatedAt: now })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) {
@@ -599,7 +621,7 @@ export async function approveTask(
       approvalNote: parsed.note?.trim() || null,
       updatedAt: now,
     })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) return { ok: false, error: "stale" };
@@ -720,7 +742,7 @@ export async function reassignTask(
       updatedAt: now,
       ...(shouldReset ? { status: "not_started" as const } : {}),
     })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) return { ok: false, error: "stale" };
@@ -844,7 +866,7 @@ export async function transferTaskExternal(
   const updated = await db
     .update(tasks)
     .set({ status: "transferred" as const, updatedAt: now })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) return { ok: false, error: "stale" };
@@ -933,7 +955,7 @@ export async function cancelTask(
   const updated = await db
     .update(tasks)
     .set({ status: "cancelled" as const, updatedAt: now })
-    .where(and(eq(tasks.id, taskId), eq(tasks.updatedAt, expectedDate)))
+    .where(and(eq(tasks.id, taskId), optimisticLockMatches(expectedDate)))
     .returning({ id: tasks.id });
 
   if (updated.length === 0) return { ok: false, error: "stale" };

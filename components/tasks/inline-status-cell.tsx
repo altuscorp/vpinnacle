@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import * as Popover from "@radix-ui/react-popover";
 import { ChevronDown, Check, Loader2 } from "lucide-react";
 import {
   USER_TASK_STATUSES,
@@ -45,15 +46,6 @@ export function InlineStatusCell({
   const [shown, setShown] = React.useState<TaskStatus>(status);
   React.useEffect(() => setShown(status), [status]);
 
-  const ref = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    }
-    if (open) document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
   // Non-admins get the curated lifecycle list; admins see everything so
   // they can recover legacy rows or force a state.
   const options: readonly TaskStatus[] = isAdmin
@@ -93,105 +85,104 @@ export function InlineStatusCell({
     }
   }
 
+  // Popover is rendered via Radix Portal so the menu escapes the table
+  // cell's `overflow-hidden` (used for text ellipsis on long titles). The
+  // earlier absolute-positioned <ul> was clipped to a sliver inside the cell.
   return (
-    <div ref={ref} className="relative inline-block">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!pending) setOpen((v) => !v);
-        }}
-        disabled={pending}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={`Status: ${labels[shown] ?? shown}. Click to change.`}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-[13px] font-bold tabular-nums transition-colors"
-        style={{
-          background: `color-mix(in srgb, var(--color-${tone}) 12%, transparent)`,
-          color: `var(--color-${tone}-deep)`,
-          cursor: pending ? "wait" : "pointer",
-          opacity: pending ? 0.7 : 1,
-          border: `1px solid color-mix(in srgb, var(--color-${tone}) 30%, transparent)`,
-        }}
-      >
-        {labels[shown] ?? shown}
-        {pending ? (
-          <Loader2
-            size={12}
-            strokeWidth={2.4}
-            style={{ animation: "spinFast 0.8s linear infinite" }}
-          />
-        ) : (
-          <ChevronDown size={12} strokeWidth={2.6} />
-        )}
-      </button>
-
-      {open && (
-        <ul
-          role="listbox"
-          aria-label="Set task status"
-          // Tier-3 mobile fix — bare `left-0 min-w-[200px]` clipped on narrow
-          // cells near the right edge. `max-md:right-0 max-md:left-auto`
-          // flips the dropdown to the right edge of its anchor on mobile so
-          // it never overflows the viewport. width auto-fits content.
-          className="absolute left-0 max-md:left-auto max-md:right-0 mt-1.5 z-50 min-w-[200px] max-md:min-w-[170px] max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
+    <Popover.Root open={open} onOpenChange={(next) => !pending && setOpen(next)}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          disabled={pending}
+          aria-label={`Status: ${labels[shown] ?? shown}. Click to change.`}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-[13px] font-bold tabular-nums transition-colors"
+          style={{
+            background: `color-mix(in srgb, var(--color-${tone}) 12%, transparent)`,
+            color: `var(--color-${tone}-deep)`,
+            cursor: pending ? "wait" : "pointer",
+            opacity: pending ? 0.7 : 1,
+            border: `1px solid color-mix(in srgb, var(--color-${tone}) 30%, transparent)`,
+          }}
+        >
+          {labels[shown] ?? shown}
+          {pending ? (
+            <Loader2
+              size={12}
+              strokeWidth={2.4}
+              style={{ animation: "spinFast 0.8s linear infinite" }}
+            />
+          ) : (
+            <ChevronDown size={12} strokeWidth={2.6} />
+          )}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="z-[60] min-w-[200px] max-md:min-w-[170px] max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card"
           style={{
             borderColor: "var(--color-hairline-strong)",
             boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
           }}
         >
-          {options.map((s) => {
-            const sel = s === shown;
-            const t = tones[s] ?? "amber";
-            return (
-              <li
-                key={s}
-                role="option"
-                aria-selected={sel}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void pick(s);
-                }}
-                className="flex items-center gap-2.5 px-3 py-2 text-[13.5px] cursor-pointer transition-colors"
-                style={{
-                  background: sel ? "var(--vp-cyan-tint)" : "transparent",
-                  fontWeight: sel ? 700 : 500,
-                }}
-                onMouseEnter={(e) => {
-                  if (!sel)
-                    e.currentTarget.style.background =
-                      "var(--color-surface-soft)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!sel) e.currentTarget.style.background = "transparent";
-                }}
-              >
-                <span
-                  aria-hidden
-                  className="inline-block size-2 rounded-full"
-                  style={{
-                    background: `var(--color-${t})`,
-                    boxShadow: `0 0 6px var(--color-${t})`,
+          <ul role="listbox" aria-label="Set task status">
+            {options.map((s) => {
+              const sel = s === shown;
+              const t = tones[s] ?? "amber";
+              return (
+                <li
+                  key={s}
+                  role="option"
+                  aria-selected={sel}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void pick(s);
                   }}
-                />
-                <span
-                  className="flex-1"
-                  style={{ color: "var(--color-ink-strong)" }}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13.5px] cursor-pointer transition-colors"
+                  style={{
+                    background: sel ? "var(--vp-cyan-tint)" : "transparent",
+                    fontWeight: sel ? 700 : 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!sel)
+                      e.currentTarget.style.background =
+                        "var(--color-surface-soft)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!sel) e.currentTarget.style.background = "transparent";
+                  }}
                 >
-                  {labels[s] ?? s}
-                </span>
-                {sel && (
-                  <Check
-                    size={14}
-                    strokeWidth={2.6}
-                    style={{ color: "rgb(var(--vp-cyan-deep))" }}
+                  <span
+                    aria-hidden
+                    className="inline-block size-2 rounded-full"
+                    style={{
+                      background: `var(--color-${t})`,
+                      boxShadow: `0 0 6px var(--color-${t})`,
+                    }}
                   />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+                  <span
+                    className="flex-1"
+                    style={{ color: "var(--color-ink-strong)" }}
+                  >
+                    {labels[s] ?? s}
+                  </span>
+                  {sel && (
+                    <Check
+                      size={14}
+                      strokeWidth={2.6}
+                      style={{ color: "rgb(var(--vp-cyan-deep))" }}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

@@ -7,7 +7,7 @@ import { listTaskEvents } from "@/lib/queries/audit";
 import { listEmployees } from "@/lib/queries/employees";
 import { getStatusDisplayMap } from "@/lib/queries/status-display";
 import { requireUser } from "@/lib/auth/current";
-import type { TaskStatus } from "@/db/enums";
+import type { TaskStatus, StatusColorToken } from "@/db/enums";
 import {
   canEditTaskFields,
   canApprove,
@@ -38,6 +38,9 @@ export default async function TaskDetailPage({ params }: PageProps) {
   const statusLabels = Object.fromEntries(
     Object.entries(statusDisplay).map(([k, v]) => [k, v.label]),
   ) as Record<TaskStatus, string>;
+  const statusTones = Object.fromEntries(
+    Object.entries(statusDisplay).map(([k, v]) => [k, v.color]),
+  ) as Record<TaskStatus, StatusColorToken>;
 
   const permInput = {
     employee: { id: me.id, isAdmin: me.isAdmin },
@@ -49,6 +52,14 @@ export default async function TaskDetailPage({ params }: PageProps) {
     },
   };
 
+  // Workflow-gated visibility for Approve/Decline. The matrix lets admins
+  // jump from any status to "approved" via override, which surfaces those
+  // cards on a "Not Started" task — misleading. Restrict the CTA to the
+  // moment it's meaningful (doer has marked work done). Admins keep the
+  // override at the server level if they ever need to force a verdict.
+  const showApproveCard =
+    canApprove(permInput) && task.status === "done";
+
   return (
     <>
       <DashboardHeader generatedAt={new Date()} />
@@ -56,7 +67,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
         <TaskDetailView
           task={task}
           canEdit={canEditTaskFields(permInput)}
-          canApproveTask={canApprove(permInput)}
+          canApproveTask={showApproveCard}
           canReassignTask={canReassign(permInput)}
           canTransferTaskExternal={canTransferExternal(permInput)}
           canCancelTask={canCancel(permInput)}
@@ -71,6 +82,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
             isAdmin: me.isAdmin,
           }}
           statusLabels={statusLabels}
+          statusTones={statusTones}
         />
       </main>
       <DashboardFooter />

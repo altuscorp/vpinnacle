@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { format, formatDistanceToNow } from "date-fns";
-import { Building2, Clock, CheckCircle2, History, Flag } from "lucide-react";
+import {
+  Building2,
+  Clock,
+  CheckCircle2,
+  History,
+  Flag,
+  ChevronDown,
+  Check as CheckIcon,
+  Loader2,
+} from "lucide-react";
 import { TaskDetail } from "./task-detail";
 import { TaskEditForm } from "./task-edit-form";
 import { AuditFeed } from "./audit-feed";
@@ -11,7 +21,14 @@ import { ActionRail } from "./action-rail";
 import { CommentInput } from "./comment-input";
 import type { TaskDetail as TaskDetailModel } from "@/lib/queries/tasks";
 import type { AuditFeedRow } from "@/lib/queries/audit";
-import type { TaskStatus } from "@/db/enums";
+import {
+  TASK_STATUSES,
+  USER_TASK_STATUSES,
+  type TaskStatus,
+  type StatusColorToken,
+} from "@/db/enums";
+import { setTaskStatus } from "@/app/(app)/tasks/actions";
+import { fireToast } from "@/lib/toast";
 
 interface Props {
   task: TaskDetailModel;
@@ -36,6 +53,9 @@ interface Props {
    *  status pill keeps its internal STATUS_TONE map for now; full rewiring
    *  is M5.2 follow-up work. */
   statusLabels?: Record<TaskStatus, string>;
+  /** Admin-overridable status color tokens. Used by the interactive status
+   *  picker so the dropdown swatches match the rest of the UI. */
+  statusTones?: Record<TaskStatus, StatusColorToken>;
 }
 
 /** Status → tone mapping shared by the pill + meta UI. */
@@ -167,6 +187,7 @@ export function TaskDetailView({
   employees,
   me,
   statusLabels,
+  statusTones,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -369,7 +390,15 @@ export function TaskDetailView({
               <h2 className="text-[12px] uppercase tracking-[0.12em] text-ink-subtle font-bold mb-3">
                 Status
               </h2>
-              <StatusPill status={task.status} />
+              <InteractiveStatusPill
+                taskId={task.id}
+                status={task.status}
+                updatedAt={task.updatedAt}
+                labels={statusLabels}
+                tones={statusTones}
+                canChange={canCommentOnTask /* same gate: any task participant or admin */}
+                isAdmin={me?.isAdmin ?? false}
+              />
               <div className="mt-5 pt-4 border-t border-hairline grid grid-cols-1 gap-3">
                 <MetaRow
                   icon={<Clock size={13} strokeWidth={2.4} />}
@@ -443,43 +472,213 @@ export function TaskDetailView({
     </div>
   );
 
-  function StatusPill({ status }: { status: TaskStatus }) {
-    const t = STATUS_TONE[status];
+}
+
+/**
+ * Detail-page status pill with click-to-change behavior. Same visual
+ * footprint as the previous read-only `StatusPill` (gradient background,
+ * pulse animation on live statuses) but opens a dropdown of valid next
+ * statuses on click. Calls `setTaskStatus`, which validates the transition
+ * server-side against the matrix and the optimistic-lock.
+ *
+ * Fixes the long-standing dead-end where a doer opened a "Not Started" task
+ * and had no UI to mark it Initiated/Done without going back to the table.
+ */
+function InteractiveStatusPill({
+  taskId,
+  status,
+  updatedAt,
+  labels,
+  tones,
+  canChange,
+  isAdmin,
+}: {
+  taskId: string;
+  status: TaskStatus;
+  updatedAt: Date;
+  labels?: Record<TaskStatus, string>;
+  tones?: Record<TaskStatus, StatusColorToken>;
+  canChange: boolean;
+  isAdmin: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [shown, setShown] = useState<TaskStatus>(status);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setShown(status), [status]);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const t = STATUS_TONE[shown];
+  const options: readonly TaskStatus[] = isAdmin
+    ? TASK_STATUSES
+    : USER_TASK_STATUSES;
+
+  function pick(next: TaskStatus) {
+    setOpen(false);
+    if (next === shown) return;
+    const prev = shown;
+    setShown(next); // optimistic
+    startTransition(async () => {
+      const res = await setTaskStatus(taskId, next, updatedAt.toISOString());
+      if (!res.ok) {
+        setShown(prev); // rollback
+        const msg =
+          res.error === "forbidden"
+            ? "You can't make that transition from your role."
+            : res.error === "stale"
+              ? "Task changed by someone else — refreshing."
+              : res.message ?? "Could not update status.";
+        fireToast({ message: msg });
+        if (res.error === "stale") router.refresh();
+      } else {
+        fireToast({
+          message: `Status set to ${labels?.[next] ?? STATUS_TONE[next].label}.`,
+        });
+        router.refresh();
+      }
+    });
+  }
+
+  const pillStyle = {
+    background: t.bg,
+    color: t.ink,
+    border: `1px solid rgba(${t.rgb}, 0.25)`,
+    fontFamily: "var(--font-sans)",
+    fontSize: 14,
+    fontWeight: 700,
+    letterSpacing: "0.01em",
+    cursor: canChange ? (pending ? "wait" : "pointer") : "default",
+    opacity: pending ? 0.7 : 1,
+    ["--pill-tone-rgb" as unknown as string]: t.rgb,
+    animation: t.live
+      ? "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1, statusPulse 3s ease-in-out 600ms infinite"
+      : "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1",
+  } as React.CSSProperties;
+
+  const pillContents = (
+    <>
+      <span
+        aria-hidden
+        className="inline-block w-1.5 h-1.5 rounded-full"
+        style={{
+          background: `rgba(${t.rgb}, 1)`,
+          boxShadow: t.live ? `0 0 0 3px rgba(${t.rgb}, 0.18)` : undefined,
+        }}
+      />
+      {labels?.[shown] ?? t.label}
+      {canChange &&
+        (pending ? (
+          <Loader2
+            size={13}
+            strokeWidth={2.4}
+            style={{ animation: "spinFast 0.8s linear infinite" }}
+          />
+        ) : (
+          <ChevronDown size={13} strokeWidth={2.6} />
+        ))}
+    </>
+  );
+
+  if (!canChange) {
     return (
       <div
-        key={status}
+        key={shown}
         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full"
-        style={
-          {
-            background: t.bg,
-            color: t.ink,
-            border: `1px solid rgba(${t.rgb}, 0.25)`,
-            fontFamily: "var(--font-sans)",
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: "0.01em",
-            // `--pill-tone-rgb` drives the @keyframes statusPulse glow.
-            ["--pill-tone-rgb" as unknown as string]: t.rgb,
-            animation: t.live
-              ? "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1, statusPulse 3s ease-in-out 600ms infinite"
-              : "statusShimmer 600ms cubic-bezier(0.2, 0.7, 0.3, 1) 1",
-          } as React.CSSProperties
-        }
+        style={pillStyle}
       >
-        <span
-          aria-hidden
-          className="inline-block w-1.5 h-1.5 rounded-full"
-          style={{
-            background: `rgba(${t.rgb}, 1)`,
-            boxShadow: t.live
-              ? `0 0 0 3px rgba(${t.rgb}, 0.18)`
-              : undefined,
-          }}
-        />
-        {t.label}
+        {pillContents}
       </div>
     );
   }
+
+  return (
+    <div ref={wrapperRef} className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => !pending && setOpen((v) => !v)}
+        disabled={pending}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Status: ${labels?.[shown] ?? t.label}. Click to change.`}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full"
+        style={pillStyle}
+      >
+        {pillContents}
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="Set task status"
+          className="absolute left-0 mt-2 z-50 min-w-[220px] max-h-[320px] overflow-y-auto rounded-chip border bg-surface-card"
+          style={{
+            borderColor: "var(--color-hairline-strong)",
+            boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
+          }}
+        >
+          {options.map((s) => {
+            const sel = s === shown;
+            const tone = tones?.[s] ?? "amber";
+            const label = labels?.[s] ?? STATUS_TONE[s]?.label ?? s;
+            return (
+              <li
+                key={s}
+                role="option"
+                aria-selected={sel}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pick(s);
+                }}
+                className="flex items-center gap-2.5 px-3 py-2.5 text-[14px] cursor-pointer transition-colors"
+                style={{
+                  background: sel ? "var(--color-surface-soft)" : "transparent",
+                  fontWeight: sel ? 700 : 500,
+                }}
+                onMouseEnter={(e) => {
+                  if (!sel)
+                    e.currentTarget.style.background =
+                      "var(--color-surface-soft)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!sel) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="inline-block size-2 rounded-full"
+                  style={{
+                    background: `var(--color-${tone})`,
+                    boxShadow: `0 0 6px var(--color-${tone})`,
+                  }}
+                />
+                <span
+                  className="flex-1"
+                  style={{ color: "var(--color-ink-strong)" }}
+                >
+                  {label}
+                </span>
+                {sel && (
+                  <CheckIcon
+                    size={14}
+                    strokeWidth={2.6}
+                    style={{ color: "var(--color-ink-strong)" }}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function MetaRow({
