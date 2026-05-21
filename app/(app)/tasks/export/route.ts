@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth/current";
+import { requireAdmin } from "@/lib/auth/current";
 import { parseTaskFilters } from "@/lib/task-filters";
 import { listTasksForExport } from "@/lib/queries/tasks";
 import {
@@ -44,7 +44,15 @@ const iso = (d: Date | null | undefined): string =>
   d ? d.toISOString() : "";
 
 export async function GET(request: Request): Promise<Response> {
-  const me = await requireUser();
+  // Admin-only — UI hides the CSV button for non-admins; this guard
+  // prevents direct-URL access. requireAdmin throws if not admin →
+  // we re-respond as a clean 403 (matches the XLSX + PDF route shape).
+  let me;
+  try {
+    me = await requireAdmin();
+  } catch {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const url = new URL(request.url);
   const sp: Record<string, string> = {};

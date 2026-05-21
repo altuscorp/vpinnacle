@@ -329,7 +329,7 @@ function FilterBar({
   onClear: () => void;
 }) {
   return (
-    <div className="mb-4 flex items-center gap-3 flex-wrap">
+    <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
       {/* Search */}
       <div
         className="relative flex items-center bg-surface-card border border-hairline rounded-chip pl-3 pr-2 h-10 min-w-[260px] max-md:min-w-full max-md:w-full transition-shadow focus-within:border-hairline-strong"

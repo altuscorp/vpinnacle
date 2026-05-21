@@ -1,6 +1,7 @@
 import { DashboardHeader } from "@/components/layout/header";
 import { DashboardFooter } from "@/components/layout/footer";
 import { requireUser } from "@/lib/auth/current";
+import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { NotificationChannels } from "@/components/profile/notification-channels";
 import { EnablePushButton } from "@/components/pwa/enable-push-button";
 
@@ -15,14 +16,22 @@ export default async function ProfilePage() {
         <div className="max-w-2xl">
           <h1 className="font-serif text-3xl text-[#0F172A] mb-1">Your profile</h1>
           <p className="text-[15px] text-[#64748B] mb-6">{me.email}</p>
-          <NotificationChannels
-            current={{
-              emailOptIn: me.emailOptIn,
-              slackOptIn: me.slackOptIn,
-              whatsappOptedIn: me.whatsappOptedIn,
-              whatsappPhone: me.whatsappPhone,
+          <EditProfileForm
+            initial={{
+              name: me.name,
+              avatarUrl: me.avatarUrl,
             }}
           />
+          <div className="mt-6">
+            <NotificationChannels
+              current={{
+                emailOptIn: me.emailOptIn,
+                slackOptIn: me.slackOptIn,
+                whatsappOptedIn: me.whatsappOptedIn,
+                whatsappPhone: me.whatsappPhone,
+              }}
+            />
+          </div>
           <div className="mt-6 rounded-lg border border-[#E2E8F0] bg-white p-5">
             <h2 className="text-[13px] uppercase tracking-wide text-[#94A3B8] font-bold mb-2">
               Browser push

@@ -6,7 +6,14 @@ import { signOut } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import Link from "next/link";
 import type { Route } from "next";
-import { Crown, User as UserIcon, ChevronRight, LogOut } from "lucide-react";
+import {
+  Crown,
+  User as UserIcon,
+  ChevronRight,
+  LogOut,
+  UserCog,
+  Inbox,
+} from "lucide-react";
 
 type Props = {
   name: string;
@@ -196,13 +203,52 @@ export function UserMenu({ name, email, isAdmin, avatarUrl }: Props) {
             </DropdownMenu.Item>
           )}
 
+          {/* Section: account */}
+          <DropdownMenu.Label className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-[#94A3B8] font-bold">
+            Account
+          </DropdownMenu.Label>
+
+          <DropdownMenu.Item asChild>
+            <Link
+              href={"/profile" as Route}
+              className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 text-[15px] rounded-lg cursor-pointer outline-none text-[#0F172A] data-[highlighted]:bg-[#F1F5F9]"
+            >
+              <span className="inline-flex items-center gap-2">
+                <UserCog size={14} strokeWidth={2.2} style={{ color: "#475569" }} />
+                <span className="font-medium">Profile &amp; preferences</span>
+              </span>
+              <ChevronRight
+                size={14}
+                strokeWidth={2.2}
+                style={{ color: "#94A3B8" }}
+              />
+            </Link>
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item asChild>
+            <Link
+              href={"/inbox" as Route}
+              className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 text-[15px] rounded-lg cursor-pointer outline-none text-[#0F172A] data-[highlighted]:bg-[#F1F5F9]"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Inbox size={14} strokeWidth={2.2} style={{ color: "#475569" }} />
+                <span className="font-medium">Inbox</span>
+              </span>
+              <ChevronRight
+                size={14}
+                strokeWidth={2.2}
+                style={{ color: "#94A3B8" }}
+              />
+            </Link>
+          </DropdownMenu.Item>
+
           <DropdownMenu.Separator className="my-1 h-px bg-[#E2E8F0]" />
 
           <DropdownMenu.Item
             onSelect={handleSignOut}
             className="flex items-center gap-2.5 px-3.5 py-2.5 text-[15px] rounded-lg cursor-pointer outline-none text-[#B0141F] data-[highlighted]:bg-[#FEF2F2]"
           >
-            <LogOut size={14} strokeWidth={2.2} />
+            <LogOut size={14} strokeWidth={2.2} style={{ color: "#B0141F" }} />
             <span className="font-medium">Sign out</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>

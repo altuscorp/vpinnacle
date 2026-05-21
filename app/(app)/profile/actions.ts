@@ -44,3 +44,52 @@ export async function updateMyChannels(
   revalidatePath("/profile");
   return { ok: true };
 }
+
+/**
+ * Self-serve profile edits — display name + avatar URL. Email is locked
+ * (it's the identity key — admins manage it). Department + admin flag are
+ * also locked. Avatar URL is just a string; no file upload — paste a public
+ * image link from Gravatar, ImgBB, or any CDN. Empty string clears it.
+ */
+const ProfilePatchSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name can't be empty").max(120),
+    avatarUrl: z
+      .string()
+      .trim()
+      .max(2000)
+      .refine(
+        (v) => v === "" || /^https?:\/\//i.test(v),
+        "Avatar must be an http(s) URL or empty",
+      ),
+  })
+  .strict();
+
+export type UpdateMyProfileInput = z.infer<typeof ProfilePatchSchema>;
+
+export async function updateMyProfile(
+  input: UpdateMyProfileInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const me = await requireUser();
+  const parsed = ProfilePatchSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid",
+    };
+  }
+  try {
+    await db
+      .update(employees)
+      .set({
+        name: parsed.data.name,
+        avatarUrl: parsed.data.avatarUrl === "" ? null : parsed.data.avatarUrl,
+      })
+      .where(eq(employees.id, me.id));
+  } catch (err) {
+    return { ok: false, error: `DB: ${(err as Error).message}` };
+  }
+  revalidatePath("/profile");
+  revalidatePath("/"); // header avatar reads from the same row
+  return { ok: true };
+}
