@@ -47,6 +47,8 @@ export async function listTasks(filters: TaskListFilters): Promise<TaskListRow[]
       // M2.1 additions:
       createdById: tasks.createdById,
       updatedAt: tasks.updatedAt,
+      // M6 (task search): surfaced so `matchesSearch` can hit free-form labels.
+      tags: tasks.tags,
     })
     .from(tasks)
     .leftJoin(employees, eq(tasks.doerId, employees.id))
@@ -66,7 +68,7 @@ export async function listTasks(filters: TaskListFilters): Promise<TaskListRow[]
   }
 
   const now = Date.now();
-  return baseRows.map((r) => ({
+  const projected: TaskListRow[] = baseRows.map((r) => ({
     id: r.id,
     title: r.title,
     subject: r.subject,
@@ -83,7 +85,34 @@ export async function listTasks(filters: TaskListFilters): Promise<TaskListRow[]
     archived: r.archived,
     createdById: r.createdById,
     updatedAt: r.updatedAt,
+    tags: r.tags ?? null,
   }));
+
+  // M6 (task search): client-side filter against the in-memory rows. The
+  // existing query is capped at 1k and the dataset is small (~240 today),
+  // so this keeps the matcher pure + testable without ILIKE churn.
+  const q = filters.q?.trim();
+  return q ? projected.filter((r) => matchesSearch(r, q)) : projected;
+}
+
+/**
+ * Pure substring search across the user-visible task fields (title, subject,
+ * tags, doer name, initiator name). Case-insensitive; empty query matches
+ * every row. Exported so it can be unit-tested without touching the DB.
+ */
+export function matchesSearch(row: TaskListRow, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const hay = [
+    row.title,
+    row.subject ?? "",
+    row.doerName ?? "",
+    row.initiatorName ?? "",
+    ...(row.tags ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(needle);
 }
 
 /**

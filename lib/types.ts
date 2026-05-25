@@ -140,6 +140,8 @@ export interface TaskListFilters {
   subjects: string[];
   taskId: string | null;
   archived: boolean;
+  /** Free-text search across title, subject, tags, doer/initiator name. */
+  q?: string;
   /** How the assignee filter was resolved.
    *  - "default":  no `emp` URL param + a defaultDoerId was supplied (non-admin
    *                default-to-me scope). `doerIds` will be `[defaultDoerId]`.
@@ -166,4 +168,6 @@ export interface TaskListRow {
   archived: boolean;
   createdById: string | null;
   updatedAt: Date;
+  /** Free-form labels surfaced for search (filter on /tasks?q=…). */
+  tags: string[] | null;
 }

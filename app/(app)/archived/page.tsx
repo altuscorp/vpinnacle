@@ -19,9 +19,13 @@ export default async function ArchivedPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const me = await requireUser();
   // Non-admins default to "assigned to me" when no explicit ?emp= is set.
-  const filters = parseTaskFilters(sp, /*archived*/ true, {
-    defaultDoerId: me.isAdmin ? undefined : me.id,
-  });
+  const q = typeof sp.q === "string" ? sp.q : undefined;
+  const filters = {
+    ...parseTaskFilters(sp, /*archived*/ true, {
+      defaultDoerId: me.isAdmin ? undefined : me.id,
+    }),
+    q,
+  };
 
   const [allEmployees, rows, subjects, statusDisplay] = await Promise.all([
     listEmployees(),
@@ -61,6 +65,7 @@ export default async function ArchivedPage({ searchParams }: PageProps) {
           dept:  filters.departments,
           prio:  filters.priorities,
           subj:  filters.subjects,
+          q:     q ?? "",
         }}
       />
       <TaskListPage

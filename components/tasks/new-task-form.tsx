@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { ImagePlus, Link2, Plus, X, FileImage, Check } from "lucide-react";
+import { ImagePlus, Link2, Plus, X, FileImage } from "lucide-react";
 import {
   TASK_PRIORITIES,
   PRIORITY_LABELS,
@@ -12,13 +12,21 @@ import {
   type TaskRecurrence,
 } from "@/db/enums";
 import { createTask } from "@/app/(app)/tasks/actions";
-import { EmployeeAvatar } from "@/components/ui/employee-avatar";
+import {
+  EmployeeCombobox,
+  EmployeeComboboxMulti,
+} from "./employee-combobox";
+import { Combobox } from "@/components/ui/combobox";
 import { ScheduleSection, type ScheduleValue } from "./schedule-section";
 
 type EmployeeOption = { id: string; name: string };
 
 interface Props {
   employees: EmployeeOption[];
+  /** Distinct tags pulled from existing non-archived tasks; used to power
+   *  the tag-input autocomplete so typos like `kyc`/`KYC`/`Kyc` don't
+   *  proliferate. */
+  existingTags?: string[];
   /** Called after a successful create. Default: navigate to /tasks/[id]. */
   onSuccess?: (taskId: string) => void;
   /** Optional defaults for the form (used by the canonical route). */
@@ -28,6 +36,16 @@ interface Props {
     priority?: TaskPriority;
   };
 }
+
+// Matches the priority tone map in `task-detail.tsx` — no
+// `--color-priority-*` tokens exist in globals.css, so we render each
+// priority's dot with its established tone (red/blue/amber/slate).
+const PRIORITY_DOT_RGB: Record<TaskPriority, string> = {
+  imp_urgent: "225, 29, 42",           // red
+  imp_not_urgent: "59, 130, 246",      // blue
+  not_imp_urgent: "245, 158, 11",      // amber
+  not_imp_not_urgent: "100, 116, 139", // slate
+};
 
 const DEFAULT_PRIORITY: TaskPriority = "not_imp_not_urgent";
 const MEDIA_SLOT_COUNT = 4;
@@ -41,7 +59,7 @@ interface PreviewFile {
   url: string;
 }
 
-export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
+export function NewTaskForm({ employees, existingTags = [], onSuccess, defaults }: Props) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
 
@@ -180,14 +198,8 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
     });
   }
 
-  function toggleDoer(id: string) {
-    setDoerIds((prev) =>
-      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
-    );
-  }
-
-  function commitTag() {
-    const t = tagInput.trim();
+  function commitTag(override?: string) {
+    const t = (override ?? tagInput).trim();
     if (!t) return;
     if (tags.includes(t)) {
       setTagInput("");
@@ -223,45 +235,48 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           and native date pickers. */}
       <div className="grid grid-cols-4 gap-4 max-md:grid-cols-1 max-md:gap-3">
         <Field id="nt-initiator" label="Initiator" required>
-          <select
+          <EmployeeCombobox
             id="nt-initiator"
-            required
             value={initiatorId}
-            onChange={(e) => setInit(e.target.value)}
-            className="nt-input"
-          >
-            <option value="">Select an employee…</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.name}
-              </option>
-            ))}
-          </select>
+            onChange={setInit}
+            employees={employees}
+            placeholder="Select an employee…"
+          />
         </Field>
         <Field
           id="nt-doer"
           label={`Doer${doerIds.length > 1 ? ` · ${doerIds.length} selected` : ""}`}
           required
         >
-          <DoerMultiSelect
+          <EmployeeComboboxMulti
+            id="nt-doer"
+            values={doerIds}
+            onChange={setDoerIds}
             employees={employees}
-            selected={doerIds}
-            onToggle={toggleDoer}
+            placeholder="Pick one or more…"
           />
         </Field>
         <Field id="nt-priority" label="Priority">
-          <select
+          <Combobox<TaskPriority>
             id="nt-priority"
             value={priority}
-            onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            className="nt-input"
-          >
-            {TASK_PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABELS[p]}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setPriority(v)}
+            options={TASK_PRIORITIES.map((p) => ({
+              value: p,
+              label: PRIORITY_LABELS[p],
+              renderItem: () => (
+                <span className="flex items-center gap-2.5 flex-1">
+                  <span
+                    className="size-2.5 rounded-full shrink-0"
+                    style={{ background: `rgb(${PRIORITY_DOT_RGB[p]})` }}
+                    aria-hidden
+                  />
+                  <span className="flex-1 text-ink-strong">{PRIORITY_LABELS[p]}</span>
+                </span>
+              ),
+            }))}
+            placeholder="Select…"
+          />
         </Field>
         <Field id="nt-due" label="Due Date" required>
           <input
@@ -278,19 +293,14 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
       {/* Subject · Task Description · Initiator Notes — each full-width
           single column, stacked top-to-bottom per spec. */}
       <Field id="nt-subject" label="Subject">
-        <select
+        <Combobox
           id="nt-subject"
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="nt-input"
-        >
-          <option value="">Select a category…</option>
-          {TASK_SUBJECTS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setSubject(v)}
+          options={TASK_SUBJECTS.map((s) => ({ value: s, label: s }))}
+          placeholder="Select a category…"
+          searchPlaceholder="Search subjects…"
+        />
       </Field>
 
       <Field id="nt-desc" label="Task Description">
@@ -325,6 +335,7 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
           onInputChange={setTagInput}
           onCommit={commitTag}
           onRemove={removeTag}
+          suggestions={existingTags}
         />
       </Field>
 
@@ -393,165 +404,6 @@ export function NewTaskForm({ employees, onSuccess, defaults }: Props) {
 }
 
 /**
- * Multi-select dropdown for Doer. Each pick adds a chip; submitting the
- * form creates one task per selected doer (the action fans out server-side).
- *
- * Styled to read the same as the .nt-input single-line inputs above it so
- * the row stays visually balanced.
- */
-function DoerMultiSelect({
-  employees,
-  selected,
-  onToggle,
-}: {
-  employees: EmployeeOption[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    if (open) document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  const byId = React.useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of employees) m.set(e.id, e.name);
-    return m;
-  }, [employees]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="nt-input flex items-center justify-between gap-2 text-left"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span className="flex flex-wrap items-center gap-1.5 min-h-[24px] max-h-[88px] overflow-y-auto">
-          {selected.length === 0 ? (
-            <span style={{ color: "var(--color-ink-subtle)" }}>
-              Pick one or more…
-            </span>
-          ) : (
-            selected.map((id) => {
-              const name = byId.get(id) ?? "Unknown";
-              return (
-                <span
-                  key={id}
-                  className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
-                  style={{
-                    background: "var(--vp-cyan-tint)",
-                    color: "rgb(var(--vp-cyan-deep))",
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  <EmployeeAvatar name={name} size="sm" />
-                  {name}
-                  <span
-                    role="button"
-                    aria-label={`Remove ${name}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggle(id);
-                    }}
-                    className="inline-flex items-center justify-center"
-                    style={{ width: 18, height: 18, borderRadius: 999 }}
-                  >
-                    <X size={12} strokeWidth={2.6} />
-                  </span>
-                </span>
-              );
-            })
-          )}
-        </span>
-        <span
-          aria-hidden
-          style={{
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 160ms ease",
-            color: "var(--color-ink-muted)",
-          }}
-        >
-          ▾
-        </span>
-      </button>
-
-      {open && (
-        <ul
-          role="listbox"
-          aria-multiselectable
-          className="absolute left-0 right-0 mt-2 z-50 max-h-[280px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
-          style={{
-            borderColor: "var(--color-hairline-strong)",
-            boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
-          }}
-        >
-          {employees.length === 0 ? (
-            <li
-              className="px-4 py-3 font-semibold"
-              style={{ fontSize: 14, color: "var(--color-ink-muted)" }}
-            >
-              No employees available.
-            </li>
-          ) : (
-            employees.map((emp) => {
-              const isSel = selected.includes(emp.id);
-              return (
-                <li
-                  key={emp.id}
-                  role="option"
-                  aria-selected={isSel}
-                  onClick={() => onToggle(emp.id)}
-                  className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors"
-                  style={{
-                    background: isSel ? "var(--vp-cyan-tint)" : "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSel)
-                      e.currentTarget.style.background =
-                        "var(--color-surface-soft)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSel) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  <EmployeeAvatar name={emp.name} size="sm" />
-                  <span
-                    className="flex-1 font-semibold"
-                    style={{
-                      fontSize: 15,
-                      color: "var(--color-ink-strong)",
-                    }}
-                  >
-                    {emp.name}
-                  </span>
-                  {isSel && (
-                    <Check
-                      size={18}
-                      strokeWidth={2.6}
-                      style={{ color: "rgb(var(--vp-cyan-deep))" }}
-                    />
-                  )}
-                </li>
-              );
-            })
-          )}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-/**
  * Tag-chip input. Press Enter or comma to commit the pending text into a
  * chip. Backspace on an empty input removes the last chip. Chips stored
  * client-side in `tags: string[]` and shipped to the action.
@@ -563,73 +415,113 @@ function TagsInput({
   onInputChange,
   onCommit,
   onRemove,
+  suggestions = [],
 }: {
   id: string;
   tags: string[];
   input: string;
   onInputChange: (v: string) => void;
-  onCommit: () => void;
+  onCommit: (override?: string) => void;
   onRemove: (idx: number) => void;
+  suggestions?: string[];
 }) {
+  const lower = input.trim().toLowerCase();
+  const matches =
+    lower.length === 0
+      ? []
+      : suggestions
+          .filter((s) => s.toLowerCase().includes(lower) && !tags.includes(s))
+          .slice(0, 8);
+
   return (
-    <div
-      className="nt-input flex flex-wrap items-center gap-1.5"
-      style={{ padding: "10px 12px", minHeight: 56 }}
-      onClick={() => document.getElementById(id)?.focus()}
-    >
-      {tags.map((t, i) => (
-        <span
-          key={`${t}-${i}`}
-          className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
+    <div className="relative">
+      <div
+        className="nt-input flex flex-wrap items-center gap-1.5"
+        style={{ padding: "10px 12px", minHeight: 56 }}
+        onClick={() => document.getElementById(id)?.focus()}
+      >
+        {tags.map((t, i) => (
+          <span
+            key={`${t}-${i}`}
+            className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1"
+            style={{
+              background: "var(--vp-cyan-tint)",
+              color: "rgb(var(--vp-cyan-deep))",
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {t}
+            <span
+              role="button"
+              aria-label={`Remove tag ${t}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(i);
+              }}
+              className="inline-flex items-center justify-center"
+              style={{ width: 18, height: 18, borderRadius: 999 }}
+            >
+              <X size={12} strokeWidth={2.6} />
+            </span>
+          </span>
+        ))}
+        <input
+          id={id}
+          type="text"
+          value={input}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              onCommit();
+            } else if (e.key === "Backspace" && input === "" && tags.length > 0) {
+              onRemove(tags.length - 1);
+            }
+          }}
+          placeholder={
+            tags.length === 0
+              ? "Type a tag and press Enter or comma to add…"
+              : "Add another tag…"
+          }
+          className="flex-1 min-w-[180px] bg-transparent outline-none"
           style={{
-            background: "var(--vp-cyan-tint)",
-            color: "rgb(var(--vp-cyan-deep))",
-            fontSize: 14,
-            fontWeight: 700,
+            fontSize: 15,
+            fontWeight: 600,
+            color: "var(--color-ink-strong)",
+            border: "none",
+            padding: 0,
+          }}
+        />
+      </div>
+
+      {matches.length > 0 && (
+        <ul
+          role="listbox"
+          className="absolute left-0 right-0 mt-1 z-50 max-h-[200px] overflow-y-auto rounded-chip border bg-surface-card shadow-xl"
+          style={{
+            borderColor: "var(--color-hairline-strong)",
+            boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
           }}
         >
-          {t}
-          <span
-            role="button"
-            aria-label={`Remove tag ${t}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(i);
-            }}
-            className="inline-flex items-center justify-center"
-            style={{ width: 18, height: 18, borderRadius: 999 }}
-          >
-            <X size={12} strokeWidth={2.6} />
-          </span>
-        </span>
-      ))}
-      <input
-        id={id}
-        type="text"
-        value={input}
-        onChange={(e) => onInputChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault();
-            onCommit();
-          } else if (e.key === "Backspace" && input === "" && tags.length > 0) {
-            onRemove(tags.length - 1);
-          }
-        }}
-        placeholder={
-          tags.length === 0
-            ? "Type a tag and press Enter or comma to add…"
-            : "Add another tag…"
-        }
-        className="flex-1 min-w-[180px] bg-transparent outline-none"
-        style={{
-          fontSize: 15,
-          fontWeight: 600,
-          color: "var(--color-ink-strong)",
-          border: "none",
-          padding: 0,
-        }}
-      />
+          {matches.map((s) => (
+            <li
+              key={s}
+              role="option"
+              aria-selected={false}
+              // onMouseDown (not onClick) — fires before the input's blur
+              // tears down this dropdown.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onCommit(s);
+              }}
+              className="px-3.5 py-2 cursor-pointer text-[15px] text-ink-strong hover:bg-surface-soft"
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

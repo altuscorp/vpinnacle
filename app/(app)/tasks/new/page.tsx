@@ -2,13 +2,17 @@ import { DashboardHeader } from "@/components/layout/header";
 import { DashboardFooter } from "@/components/layout/footer";
 import { NewTaskForm } from "@/components/tasks/new-task-form";
 import { listEmployees } from "@/lib/queries/employees";
+import { getDistinctTags } from "@/lib/queries/distinct-tags";
 import { requireUser } from "@/lib/auth/current";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewTaskPage() {
   const me = await requireUser();
-  const all = await listEmployees();
+  const [all, existingTags] = await Promise.all([
+    listEmployees(),
+    getDistinctTags(),
+  ]);
   const options = all.map((e) => ({ id: e.id, name: e.name }));
 
   return (
@@ -28,6 +32,7 @@ export default async function NewTaskPage() {
         >
           <NewTaskForm
             employees={options}
+            existingTags={existingTags}
             defaults={{ initiatorId: me.id }}
           />
         </div>

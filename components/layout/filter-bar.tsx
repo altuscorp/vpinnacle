@@ -13,6 +13,8 @@ import {
   ArrowRight,
   User,
   Download,
+  Search,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -32,6 +34,7 @@ interface Props {
     dept: string[];
     prio: string[];
     subj: string[];
+    q?: string;
   };
   subjects?: string[]; // pool of distinct task subjects for autocomplete
   /** Pass the signed-in user to enable the "My tasks / All tasks" scope chip.
@@ -73,7 +76,25 @@ export function FilterBar({
   const [dept, setDept] = React.useState<string[]>(initial.dept);
   const [prio, setPrio] = React.useState<string[]>(initial.prio);
   const [subj, setSubj] = React.useState<string[]>(initial.subj);
+  const [q, setQ] = React.useState(initial.q ?? "");
   const pathname = usePathname();
+
+  // M6: ⌘K / Ctrl+K focuses the task search bar on /tasks and /archived.
+  React.useEffect(() => {
+    if (pathname !== "/tasks" && pathname !== "/archived") return;
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta || e.key.toLowerCase() !== "k") return;
+      e.preventDefault();
+      const el = document.querySelector<HTMLInputElement>(
+        '[data-search-bar="tasks"]',
+      );
+      el?.focus();
+      el?.select();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pathname]);
 
   const range: DateRange | undefined = React.useMemo(() => {
     try {
@@ -109,6 +130,7 @@ export function FilterBar({
     if (dept.length > 0) sp.set("dept", dept.join(",")); else sp.delete("dept");
     if (prio.length > 0) sp.set("prio", prio.join(",")); else sp.delete("prio");
     if (subj.length > 0) sp.set("subj", subj.join(",")); else sp.delete("subj");
+    if (q.trim()) sp.set("q", q.trim()); else sp.delete("q");
     startTransition(() => router.replace(`${pathname}?${sp.toString()}` as any));
   }
 
@@ -123,6 +145,7 @@ export function FilterBar({
     setDept([]);
     setPrio([]);
     setSubj([]);
+    setQ("");
   }
 
   const fmt = (s: string) => {
@@ -151,20 +174,61 @@ export function FilterBar({
     (view !== "doer" ? 1 : 0) +
     (dept.length > 0 ? 1 : 0) +
     (prio.length > 0 ? 1 : 0) +
-    (subj.length > 0 ? 1 : 0); // start/end have defaults so don't count
+    (subj.length > 0 ? 1 : 0) +
+    (q.trim() ? 1 : 0); // start/end have defaults so don't count
 
   return (
     <div
       // Tight against the bottom of the sticky light header (96px desktop,
-      // 72px mobile). No gap → no clipped content peeking through.
-      className="sticky top-[96px] max-md:top-[72px] z-40 border-b border-hairline"
+      // 56px mobile — matches Material Design 3 top-app-bar). On mobile
+      // the filter chips become a single horizontal-scroll row instead of
+      // wrapping into a 3-row chip tower; that keeps the sticky chrome to
+      // ~100px total (header + filter) and gives content actual room.
+      className="filter-bar-sticky sticky top-[96px] max-md:top-[56px] z-40 border-b border-hairline"
       style={{
         backgroundColor: "rgba(250, 251, 252, 0.82)",
         backdropFilter: "blur(20px) saturate(150%)",
         WebkitBackdropFilter: "blur(20px) saturate(150%)",
       }}
     >
-      <div className="mx-auto max-w-[1600px] flex flex-wrap items-center gap-3 px-12 py-4 max-md:px-4">
+      <div className="filter-bar-row mx-auto max-w-[1600px] flex flex-wrap items-center gap-3 px-12 py-4 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-4 max-md:py-2.5 max-md:gap-2">
+        {/* M6: free-text search across title / subject / tags / doer / initiator.
+            ⌘K / Ctrl+K focuses this on /tasks + /archived. */}
+        <div className="relative flex-1 max-w-[420px] min-w-[200px]">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+            strokeWidth={2.2}
+          />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                apply();
+              }
+            }}
+            placeholder="Search title, subject, tags, assignee…"
+            className="w-full text-chip text-ink-strong bg-surface-card border border-hairline rounded-chip pl-9 pr-9 py-2.5 outline-none focus:border-hairline-strong"
+            aria-label="Search tasks"
+            data-search-bar="tasks"
+          />
+          {q && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink-strong"
+              aria-label="Clear search"
+            >
+              <X size={14} strokeWidth={2.4} />
+            </button>
+          )}
+        </div>
+
         <span
           className="inline-flex items-center gap-1.5 text-table-head mr-1"
           style={{ color: "var(--color-ink-subtle)" }}
