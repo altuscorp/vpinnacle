@@ -86,3 +86,4 @@ CLAUDE.md
 .env.local.example
 docs/superpowers/
 docs/2026-05-13-timeline-and-training-plan.md
+tests/visual/.smoke-out/

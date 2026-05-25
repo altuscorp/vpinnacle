@@ -54,7 +54,7 @@ export interface SlackCtx {
   statusLabel?: string;
 }
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dashboard.altuscorp.in";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://task.vpinnacle.com";
 
 export function buildSlackBlocks(
   kind: NotificationKind,

@@ -170,7 +170,7 @@ export function WelcomeCelebration({
         className="mt-4 text-center font-serif text-[#0F172A]"
         style={{
           fontStyle: "italic",
-          fontSize: 64,
+          fontSize: "clamp(40px, 11vw, 64px)",
           lineHeight: 0.95,
           letterSpacing: "-0.03em",
           fontWeight: 400,

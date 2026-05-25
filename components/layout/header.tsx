@@ -8,13 +8,15 @@ import { AdminPill } from "@/components/header/admin-pill";
 import { getCurrentEmployee } from "@/lib/auth/current";
 
 /**
- * Light glassy application header — single row, ~72px tall.
+ * Light glassy application header.
  *
- * Cyan triangle mark + bold "VPinnacle Loans" wordmark on the left, primary
- * nav centered with airy spacing, right cluster carries live indicator +
- * actions + avatar. Frosted-glass white surface with a single hairline
- * bottom border — no decorative washes, no rainbow strip. The nav-pill
- * colors flip to ink-on-light via `.header-light` scope.
+ * Desktop: 96px tall, airy. Mobile: 56px tall — matches Material Design 3
+ * top-app-bar (56dp) and sits a hair above iOS HIG (44pt). Below 72px on
+ * mobile, every pixel earns its place: 28px brand circle, 17px "VP Loans"
+ * wordmark, 44px hamburger (iOS HIG touch-target minimum).
+ *
+ * Top padding picks up `env(safe-area-inset-top)` so on iOS standalone /
+ * notched devices the brand isn't crammed under the status bar.
  *
  * `generatedAt` is accepted to keep the prop contract stable for callers
  * but no longer rendered.
@@ -34,19 +36,20 @@ export async function DashboardHeader({
           backdropFilter: "blur(20px) saturate(160%)",
           WebkitBackdropFilter: "blur(20px) saturate(160%)",
           borderBottom: "1px solid var(--color-hairline)",
+          paddingTop: "env(safe-area-inset-top, 0px)",
         }}
       >
-        <div className="relative mx-auto max-w-[1600px] h-[96px] px-8 max-md:h-[72px] max-md:px-4 flex items-center gap-10 max-md:gap-3">
+        <div className="relative mx-auto max-w-[1600px] h-[96px] px-8 max-md:h-[56px] max-md:px-4 flex items-center gap-10 max-md:gap-2.5">
           {/* LEFT-MOST: Back / Forward history pills (md+ only).
               On mobile, replaced by the hamburger menu (same slot). */}
           <NavHistoryButtons />
           <MobileMenuServer isAdmin={isAdmin} />
 
           {/* LEFT: cyan triangle + bold ink wordmark */}
-          <div className="flex items-center gap-3.5 shrink-0">
+          <div className="flex items-center gap-3.5 max-md:gap-2 shrink-0">
             <span
               aria-hidden
-              className="inline-flex items-center justify-center h-11 w-11 rounded-full shrink-0 max-md:h-9 max-md:w-9"
+              className="inline-flex items-center justify-center h-11 w-11 rounded-full shrink-0 max-md:h-7 max-md:w-7"
               style={{
                 background:
                   "linear-gradient(135deg, rgba(34, 181, 227, 0.12), rgba(14, 165, 233, 0.04))",
@@ -60,7 +63,7 @@ export async function DashboardHeader({
                 height="20"
                 viewBox="0 0 14 14"
                 fill="none"
-                className="max-md:w-4 max-md:h-4"
+                className="max-md:w-3 max-md:h-3"
               >
                 <defs>
                   <linearGradient
@@ -82,7 +85,7 @@ export async function DashboardHeader({
             </span>
 
             <span
-              className="inline-flex items-baseline gap-1.5 whitespace-nowrap"
+              className="inline-flex items-baseline gap-1.5 max-md:gap-1 whitespace-nowrap"
               style={{
                 fontFamily: "var(--font-display), system-ui, sans-serif",
                 fontWeight: 900,
@@ -93,10 +96,11 @@ export async function DashboardHeader({
               }}
             >
               <span className="max-md:hidden">VPinnacle&nbsp;</span>
-              <span className="md:hidden" style={{ fontSize: 22 }}>
+              <span className="md:hidden" style={{ fontSize: 17, letterSpacing: "-0.02em" }}>
                 VP&nbsp;
               </span>
               <span
+                className="max-md:text-[17px]"
                 style={{
                   background:
                     "linear-gradient(135deg, rgb(var(--vp-cyan-bright)), rgb(var(--vp-cyan-deep)))",
@@ -116,7 +120,7 @@ export async function DashboardHeader({
           </div>
 
           {/* RIGHT: live indicator + actions + avatar */}
-          <div className="flex items-center gap-3 shrink-0 max-md:gap-1.5">
+          <div className="flex items-center gap-3 shrink-0 max-md:gap-2 ml-auto">
             <span className="max-md:hidden">
               <LiveIndicator />
             </span>

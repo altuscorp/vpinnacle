@@ -72,6 +72,17 @@
     font-feature-settings: "tnum" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Match the sticky header + filter-bar combined height so anchor
+       jumps and `scrollIntoView()` don't land beneath the chrome. */
+    scroll-padding-top: 160px;
+  }
+
+  @media (max-width: 768px) {
+    html {
+      /* Mobile sticky chrome: 56px header + ~50px filter row = 106px.
+         Round up so headings land with breathing room. */
+      scroll-padding-top: 116px;
+    }
   }
 
   body {
@@ -1816,3 +1827,56 @@
     transform: none;
   }
 }
+
+/* ============================================================
+   MOBILE POLISH PASS — 2026-05-22
+   Targets the issues Manan flagged on task.vpinnacle.com mobile:
+   header too tall, chip rows wrapping, alignment drift.
+   Reference: Material Design 3 top-app-bar (56dp), Apple HIG
+   touch-target minimum (44pt), iOS safe-area insets.
+   ============================================================ */
+
+/* Filter-bar — on mobile, the chip row becomes a single horizontally
+   scrolling line. Hide the scrollbar (it adds vertical drift) and add
+   a soft right-edge fade so users see there's more content beyond the
+   viewport. The fade only applies on mobile where the row scrolls. */
+.filter-bar-row {
+  scrollbar-width: none; /* Firefox */
+}
+.filter-bar-row::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+@media (max-width: 768px) {
+  .filter-bar-sticky {
+    /* Soft right-edge fade telegraphs the horizontal-scroll affordance
+       without adding chrome. Color matches the filter-bar surface so
+       it reads as "fades into nothing" rather than "extra UI". */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      black 0,
+      black calc(100% - 24px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      black 0,
+      black calc(100% - 24px),
+      transparent 100%
+    );
+  }
+  .filter-bar-row > * {
+    /* Prevent chips from squishing in the horizontal-scroll row. */
+    flex-shrink: 0;
+  }
+}
+
+/* iOS notch / dynamic-island safe-area — header picks up
+   `env(safe-area-inset-top)` inline so it doesn't disappear under the
+   status bar in standalone PWA mode. The filter bar inherits the
+   correct sticky offset because it counts from the header's bottom
+   edge, not from `0`.
+
+   All dashboard sections use `max-md:px-4` (16px) per Tailwind default
+   and iOS-typical content margin. The header + filter-bar mirror that
+   so the brand circle, filter chips, KPI tiles, and table rows all
+   align flush at the same 16px left edge. */

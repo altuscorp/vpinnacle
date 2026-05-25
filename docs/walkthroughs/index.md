@@ -26,7 +26,7 @@ VPinnacle Dashboard is a "Light Vibrant" work-management app for the VPinnacle L
 - **M5.3** — Sentry, structured logging, performance pass (next milestone, not started).
 - **Operational** — DNS for `dashboard.altuscorp.in`; invite emails for the 13 imported employees; 4 `.tbd@` placeholder addresses; WhatsApp template Meta Business Manager approval. See CLAUDE.md for the running list.
 
-The app is **live at https://vpinnacle-v2.vercel.app** against prod Supabase, seeded with 14 imported employees + 240 imported tasks.
+The app is **live at https://task.vpinnacle.com** against prod Supabase, seeded with 14 imported employees + 240 imported tasks.
 
 ## Demo flow (15 minutes)
 

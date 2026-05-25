@@ -38,7 +38,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "VPinnacle — Work Management Dashboard",
   description: "Work management dashboard by Altus Corp",
-  metadataBase: new URL("https://dashboard.altuscorp.in"),
+  metadataBase: new URL("https://task.vpinnacle.com"),
   manifest: "/manifest.json",
 };
 

@@ -59,7 +59,7 @@ export async function sendSlackDigest(
   });
   if (!uid) return "skip";
   const SITE =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://dashboard.altuscorp.in";
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://task.vpinnacle.com";
   const blocks = [
     {
       type: "header",

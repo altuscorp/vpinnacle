@@ -35,7 +35,7 @@ export function BrandStack({
         className="font-serif text-[#0F172A]"
         style={{
           fontStyle: "italic",
-          fontSize: 52,
+          fontSize: "clamp(38px, 10vw, 52px)",
           lineHeight: 0.95,
           letterSpacing: "-0.03em",
         }}
@@ -75,7 +75,7 @@ export function BrandStack({
         className="mt-3 font-serif text-[#0F172A]"
         style={{
           fontStyle: "italic",
-          fontSize: 30,
+          fontSize: "clamp(22px, 6vw, 30px)",
           lineHeight: 1.05,
           letterSpacing: "-0.02em",
           fontWeight: 400,

@@ -118,7 +118,7 @@ export function LoginForm() {
           className="font-serif text-[#0F172A]"
           style={{
             fontStyle: "italic",
-            fontSize: 48,
+            fontSize: "clamp(34px, 9vw, 48px)",
             lineHeight: 1.02,
             letterSpacing: "-0.025em",
             fontWeight: 400,

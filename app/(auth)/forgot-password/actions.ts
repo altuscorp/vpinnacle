@@ -11,7 +11,7 @@ const RequestSchema = z.object({
 function requireSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (fromEnv && fromEnv.length > 0) return fromEnv.replace(/\/+$/, "");
-  return "https://vpinnacle-delta.vercel.app";
+  return "https://task.vpinnacle.com";
 }
 
 /**
