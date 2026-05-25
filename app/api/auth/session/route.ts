@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { employees } from "@/db/schema";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { log } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,9 @@ export async function POST(req: Request) {
   try {
     decoded = await getFirebaseAdminAuth().verifyIdToken(idToken);
   } catch (err) {
-    console.error("verifyIdToken failed", err);
+    log.error("auth.verify_id_token_failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
@@ -87,7 +90,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
-    console.error("setAuthCookies failed", err);
+    log.error("auth.set_cookies_failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 }

@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { db, employees, tasks } from "@/lib/db";
 import { PENDING_STATUSES, type TaskStatus } from "@/db/enums";
+import { timed } from "./with-timing";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -37,6 +38,7 @@ export interface OverdueTask {
 export async function listOverdueByEmployee(
   now: Date = new Date(),
 ): Promise<Map<string, OverdueTask[]>> {
+  return timed("overdue.listOverdueByEmployee", async () => {
   const rows = await db
     .select({
       id: tasks.id,
@@ -86,4 +88,5 @@ export async function listOverdueByEmployee(
     }
   }
   return map;
+  });
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Roboto, Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ToastHost } from "@/components/ui/toast";
 import { RegisterSW } from "@/components/pwa/register-sw";
@@ -60,6 +62,8 @@ export default function RootLayout({
         </NuqsAdapter>
         <ToastHost />
         <RegisterSW />
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

@@ -8,6 +8,7 @@ import {
   browserSessionPersistence,
   type Auth,
 } from "firebase/auth";
+import { log } from "@/lib/log";
 
 let cachedApp: FirebaseApp | null = null;
 let cachedAuth: Auth | null = null;
@@ -39,7 +40,9 @@ export function getFirebaseAuth(): Auth {
   setPersistence(cachedAuth, browserSessionPersistence).catch((err) => {
     // Non-fatal — fall back to default (local) persistence rather than
     // bricking the app if IndexedDB is unavailable (private windows, etc.).
-    console.warn("[firebase] setPersistence failed", err);
+    log.warn("firebase.set_persistence_failed", {
+      err: err instanceof Error ? err.message : String(err),
+    });
   });
   return cachedAuth;
 }

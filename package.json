@@ -25,7 +25,8 @@
     "dev:full": "concurrently -k -n web,emul \"pnpm dev\" \"pnpm emul\"",
     "bootstrap-admin": "tsx --env-file=.env.bootstrap scripts/bootstrap-admin.ts",
     "import:legacy": "tsx --env-file=.env.local scripts/import-legacy.ts",
-    "gen:icons": "python scripts/gen-pwa-icons.py"
+    "gen:icons": "python scripts/gen-pwa-icons.py",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -42,6 +43,8 @@
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "csv-parse": "^6.2.1",
@@ -71,6 +74,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@faker-js/faker": "^10.4.0",
+    "@next/bundle-analyzer": "^16.2.6",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/dom": "^10.4.1",
@@ -83,6 +87,7 @@
     "@types/web-push": "^3.6.4",
     "@vitest/ui": "^4.1.5",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "csv-stringify": "^6.7.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",

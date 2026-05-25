@@ -7,19 +7,22 @@ import {
   type StatusDisplay,
   type StatusDisplayMap,
 } from "./status-display-merge";
+import { timed } from "./with-timing";
 
 export type { StatusDisplay, StatusDisplayMap };
 export { mergeStatusDisplay };
 
 export const getStatusDisplayMap = cache(
   async (): Promise<StatusDisplayMap> => {
-    const rows = await db
-      .select({
-        status: statusSettings.status,
-        label: statusSettings.label,
-        colorToken: statusSettings.colorToken,
-      })
-      .from(statusSettings);
-    return mergeStatusDisplay(rows);
+    return timed("status-display.getStatusDisplayMap", async () => {
+      const rows = await db
+        .select({
+          status: statusSettings.status,
+          label: statusSettings.label,
+          colorToken: statusSettings.colorToken,
+        })
+        .from(statusSettings);
+      return mergeStatusDisplay(rows);
+    });
   },
 );

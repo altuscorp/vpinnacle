@@ -2,6 +2,7 @@ import "server-only";
 import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { departments, employees, type Department } from "@/db/schema";
+import { timed } from "./with-timing";
 
 /**
  * Every department, ordered by sort_order then name. Includes inactive
@@ -9,10 +10,12 @@ import { departments, employees, type Department } from "@/db/schema";
  * filter on `.isActive` themselves.
  */
 export async function listDepartments(): Promise<Department[]> {
+  return timed("departments.listDepartments", async () => {
   return db
     .select()
     .from(departments)
     .orderBy(asc(departments.sortOrder), asc(departments.name));
+  });
 }
 
 /**
@@ -24,6 +27,7 @@ export interface DepartmentWithCount extends Department {
 }
 
 export async function listDepartmentsWithCounts(): Promise<DepartmentWithCount[]> {
+  return timed("departments.listDepartmentsWithCounts", async () => {
   const rows = await db
     .select({
       id: departments.id,
@@ -39,15 +43,18 @@ export async function listDepartmentsWithCounts(): Promise<DepartmentWithCount[]
     .groupBy(departments.id)
     .orderBy(asc(departments.sortOrder), asc(departments.name));
   return rows;
+  });
 }
 
 /**
  * Just active departments, used by employee pickers (invite + edit).
  */
 export async function listActiveDepartments(): Promise<Department[]> {
+  return timed("departments.listActiveDepartments", async () => {
   return db
     .select()
     .from(departments)
     .where(eq(departments.isActive, true))
     .orderBy(asc(departments.sortOrder), asc(departments.name));
+  });
 }

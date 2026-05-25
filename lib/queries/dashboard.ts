@@ -16,12 +16,14 @@ import {
 import { AGE_BUCKETS, PENDING_STATUSES } from "@/db/enums";
 import type { TaskStatus } from "@/db/enums";
 import type { AgingHeatmapData } from "@/lib/types";
+import { timed } from "./with-timing";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export async function loadDashboardData(
   filters: DashboardFilters,
 ): Promise<DashboardData> {
+  return timed("dashboard.loadDashboardData", async () => {
   const start =
     filters.startDate ?? new Date(Date.now() - 30 * MS_PER_DAY);
   const end = filters.endDate ?? new Date();
@@ -195,4 +197,5 @@ export async function loadDashboardData(
     agingHeatmapData: { byCell },
     generatedAt: now,
   };
+  });
 }

@@ -5,6 +5,7 @@ import { employees, tasks, taskEvents } from "@/db/schema";
 import type { ActivityRow } from "@/lib/transforms/activity";
 import type { TaskEventType } from "@/lib/events";
 import { PENDING_STATUSES, type TaskStatus } from "@/db/enums";
+import { timed } from "./with-timing";
 
 export interface AdminOverview {
   activeEmployees: number;
@@ -15,6 +16,7 @@ export interface AdminOverview {
 }
 
 export async function getAdminOverview(): Promise<AdminOverview> {
+  return timed("admin.getAdminOverview", async () => {
   const [activeRow]      = await db.select({ n: count() }).from(employees).where(eq(employees.isActive, true));
   const [pendingInvites] = await db.select({ n: count() }).from(employees).where(and(eq(employees.isActive, true), isNull(employees.joinedAt)));
   // Tier-3 — count every pending status (incl. new need_info / follow_up_1/2/3)
@@ -73,4 +75,5 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     overdueTasks:    overdueTasks?.n ?? 0,
     recentActivity,
   };
+  });
 }

@@ -22,6 +22,7 @@ import {
 } from "@/lib/validators/employee";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 import { sendInviteEmail } from "@/lib/email/resend";
+import { log } from "@/lib/log";
 
 /** Resolve the public site URL exactly once. Falls back to the prod
  *  Vercel host so a missing `NEXT_PUBLIC_SITE_URL` in dev doesn't yield
@@ -144,10 +145,10 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
       { tries: 3, delayMs: 250 },
     );
   } catch (err) {
-    console.error(
-      `[inviteEmployee] setCustomUserClaims failed for ${fbUid} — continuing without role claim`,
-      err,
-    );
+    log.error("invite.set_custom_claims_failed", {
+      firebaseUid: fbUid,
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   // Resolve the matching department FK (case-insensitive) so the new
@@ -199,11 +200,17 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
     });
     if (sendError) {
       emailWarning = `Created the account but the invite email failed: ${sendError}. Use "Resend invite" to retry.`;
-      console.error("[inviteEmployee] sendInviteEmail returned error", sendError);
+      log.error("invite.email_send_failed", {
+        email: parsed.email,
+        err: String(sendError),
+      });
     }
   } catch (err: any) {
     emailWarning = `Created the account but couldn't generate the invite link: ${err?.message ?? err}. Use "Resend invite" to retry.`;
-    console.error("[inviteEmployee] generatePasswordResetLink/sendInviteEmail threw", err);
+    log.error("invite.link_generate_failed", {
+      email: parsed.email,
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   try {
@@ -220,7 +227,10 @@ export async function inviteEmployee(input: InviteEmployeeInput): Promise<{
       },
     });
   } catch (err) {
-    console.error("[inviteEmployee] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "invite",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");
@@ -329,7 +339,10 @@ export async function editEmployee(
       });
     }
   } catch (err) {
-    console.error("[editEmployee] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "edit",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");
@@ -418,7 +431,10 @@ export async function resendInvite(employeeId: string): Promise<{ ok: boolean; e
       eventType: "invite_resent",
     });
   } catch (err) {
-    console.error("[resendInvite] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "resend_invite",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");
@@ -469,7 +485,10 @@ export async function deactivateEmployee(
       toValue: { isActive: false },
     });
   } catch (err) {
-    console.error("[deactivateEmployee] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "deactivate",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");
@@ -516,7 +535,10 @@ export async function reactivateEmployee(
       toValue: { isActive: true },
     });
   } catch (err) {
-    console.error("[reactivateEmployee] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "reactivate",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");
@@ -745,10 +767,10 @@ export async function deleteEmployee(
     try {
       await getFirebaseAdminAuth().deleteUser(snapshot.firebaseUid);
     } catch (err) {
-      console.warn(
-        `[deleteEmployee] firebase deleteUser(${snapshot.firebaseUid}) failed — clean up manually`,
-        err,
-      );
+      log.warn("employee.firebase_delete_failed", {
+        firebaseUid: snapshot.firebaseUid,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -765,7 +787,10 @@ export async function deleteEmployee(
       toValue: counts,
     });
   } catch (err) {
-    console.error("[deleteEmployee] audit write failed", err);
+    log.error("employee.audit_write_failed", {
+      op: "delete",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/employees");

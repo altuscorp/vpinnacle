@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orgSettings, type OrgSettings } from "@/db/schema";
+import { timed } from "./with-timing";
 
 /**
  * The single-row `org_settings` table has `id = 1` as the only valid row.
@@ -35,10 +36,12 @@ const DEFAULTS: OrgSettings = {
 };
 
 export async function getOrgSettings(): Promise<OrgSettings> {
+  return timed("org-settings.getOrgSettings", async () => {
   const [row] = await db
     .select()
     .from(orgSettings)
     .where(eq(orgSettings.id, 1))
     .limit(1);
   return row ?? DEFAULTS;
+  });
 }

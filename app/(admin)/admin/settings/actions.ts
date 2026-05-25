@@ -18,6 +18,7 @@ import {
   type NotificationChannel,
 } from "@/lib/notifications/resolve-channels";
 import { NOTIFICATION_KINDS } from "@/db/schema";
+import { log } from "@/lib/log";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -91,7 +92,10 @@ export async function updateOrgSettings(
       });
     }
   } catch (err) {
-    console.error("[updateOrgSettings] audit write failed", err);
+    log.error("settings.audit_write_failed", {
+      op: "update_org_settings",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/settings");
@@ -151,7 +155,10 @@ export async function updateStatusSettingAction(
       toValue: { label, color },
     });
   } catch (err) {
-    console.error("[updateStatusSettingAction] audit write failed", err);
+    log.error("settings.audit_write_failed", {
+      op: "update_status_setting",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/settings");
@@ -234,7 +241,10 @@ export async function updateNotificationMatrixAction(input: {
       toValue: { notificationMatrix: parsed.data.matrix },
     });
   } catch (err) {
-    console.error("[updateNotificationMatrixAction] audit write failed", err);
+    log.error("settings.audit_write_failed", {
+      op: "update_notification_matrix",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/settings");

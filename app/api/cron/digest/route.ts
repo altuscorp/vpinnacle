@@ -7,6 +7,7 @@ import { getRecipientChannelPrefs } from "@/lib/notifications/channel-prefs";
 import { sendSlackDigest } from "@/lib/slack/dispatch";
 import { sendWhatsAppDigest } from "@/lib/whatsapp/dispatch";
 import { getOrgSettings } from "@/lib/queries/org-settings";
+import { log } from "@/lib/log";
 
 /**
  * Daily overdue-task digest cron.
@@ -147,10 +148,10 @@ async function runDigest(request: Request): Promise<NextResponse> {
         actorId: null,
       });
     } catch (err) {
-      console.error(
-        `[cron/digest] failed to insert notification for ${employeeId}`,
-        err,
-      );
+      log.error("cron.digest_notification_insert_failed", {
+        employeeId,
+        err: err instanceof Error ? err.message : String(err),
+      });
       // Continue — a failed notification insert shouldn't block the email.
     }
 
@@ -162,18 +163,18 @@ async function runDigest(request: Request): Promise<NextResponse> {
         siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
       });
       if (result.error) {
-        console.error(
-          `[cron/digest] sendDigestEmail returned error for ${recipient.email}:`,
-          result.error,
-        );
+        log.error("cron.digest_email_send_failed", {
+          email: recipient.email,
+          err: String(result.error),
+        });
       } else {
         sent++;
       }
     } catch (err) {
-      console.error(
-        `[cron/digest] sendDigestEmail threw for ${recipient.email}`,
-        err,
-      );
+      log.error("cron.digest_email_send_failed", {
+        email: recipient.email,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
 
     // 3) Slack (M4 Commit 3a) — best-effort DM with the same overdue
@@ -192,10 +193,10 @@ async function runDigest(request: Request): Promise<NextResponse> {
         );
       }
     } catch (err) {
-      console.error(
-        `[cron/digest] sendSlackDigest threw for ${recipient.email}`,
-        err,
-      );
+      log.error("cron.digest_slack_send_failed", {
+        email: recipient.email,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
 
     // 4) WhatsApp (M4 Commit 3b) — fires the `vp_overdue_digest`
@@ -213,10 +214,10 @@ async function runDigest(request: Request): Promise<NextResponse> {
         );
       }
     } catch (err) {
-      console.error(
-        `[cron/digest] sendWhatsAppDigest threw for ${recipient.email}`,
-        err,
-      );
+      log.error("cron.digest_whatsapp_send_failed", {
+        email: recipient.email,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

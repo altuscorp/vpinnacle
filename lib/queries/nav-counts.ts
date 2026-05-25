@@ -1,6 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import { db, tasks } from "@/lib/db";
 import { getUnreadCount } from "@/lib/queries/notifications";
+import { timed } from "./with-timing";
 
 export async function getNavCounts(args?: {
   userId?: string;
@@ -11,6 +12,7 @@ export async function getNavCounts(args?: {
   archivedTasks: number;
   inboxUnread: number;
 }> {
+  return timed("nav-counts.getNavCounts", async () => {
   const [activeRow, archivedRow, inboxUnread] = await Promise.all([
     db
       .select({ n: count() })
@@ -32,4 +34,5 @@ export async function getNavCounts(args?: {
     archivedTasks: Number(archivedRow[0]?.n ?? 0),
     inboxUnread,
   };
+  });
 }

@@ -6,6 +6,7 @@ import { pushSubscriptions } from "@/db/schema";
 import {
   type NotificationChannel,
 } from "@/lib/notifications/resolve-channels";
+import { timed } from "./with-timing";
 
 export type IntegrationStatus = {
   channel: NotificationChannel;
@@ -39,6 +40,7 @@ async function deliveryStats(channel: NotificationChannel) {
 
 export const getIntegrationHealth = cache(
   async (): Promise<IntegrationStatus[]> => {
+    return timed("integration-health.getIntegrationHealth", async () => {
     const out: IntegrationStatus[] = [];
 
     const resendKey = process.env.RESEND_API_KEY;
@@ -83,5 +85,6 @@ export const getIntegrationHealth = cache(
     });
 
     return out;
+    });
   },
 );

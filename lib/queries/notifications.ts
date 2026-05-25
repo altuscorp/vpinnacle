@@ -20,6 +20,7 @@ import {
   tasks,
   type NotificationKind,
 } from "@/db/schema";
+import { timed } from "./with-timing";
 
 // ---------------------------------------------------------------------------
 // Inbox (per-user) feed — kept from M2.3.  The /inbox route renders these
@@ -82,6 +83,7 @@ export interface ListInboxNotificationsResult {
 export async function listInboxNotifications(
   args: ListInboxNotificationsArgs,
 ): Promise<ListInboxNotificationsResult> {
+  return timed("notifications.listInboxNotifications", async () => {
   const pageSize = Math.min(args.limit ?? DEFAULT_NOTIFICATIONS_PAGE_SIZE, 500);
   const actor = alias(employees, "notif_actor");
 
@@ -141,6 +143,7 @@ export async function listInboxNotifications(
   const nextCursor = hasMore && tail ? tail.createdAt.toISOString() : null;
 
   return { notifications: list, nextCursor, hasMore };
+  });
 }
 
 /**
@@ -149,6 +152,7 @@ export async function listInboxNotifications(
  * (user_id, read_at, created_at) so this is a covered index scan.
  */
 export async function getUnreadCount(userId: string): Promise<number> {
+  return timed("notifications.getUnreadCount", async () => {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(notifications)
@@ -156,6 +160,7 @@ export async function getUnreadCount(userId: string): Promise<number> {
       and(eq(notifications.userId, userId), isNull(notifications.readAt)),
     );
   return Number(row?.n ?? 0);
+  });
 }
 
 /**
@@ -170,6 +175,7 @@ export async function markRead(
   notificationId: string,
   userId: string,
 ): Promise<void> {
+  return timed("notifications.markRead", async () => {
   await db
     .update(notifications)
     .set({ readAt: new Date() })
@@ -180,6 +186,7 @@ export async function markRead(
         isNull(notifications.readAt),
       ),
     );
+  });
 }
 
 /**
@@ -187,12 +194,14 @@ export async function markRead(
  * "Mark all read" button.
  */
 export async function markAllRead(userId: string): Promise<void> {
+  return timed("notifications.markAllRead", async () => {
   await db
     .update(notifications)
     .set({ readAt: new Date() })
     .where(
       and(eq(notifications.userId, userId), isNull(notifications.readAt)),
     );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +276,7 @@ function clampLimit(n: number | undefined): number {
 export async function listNotifications(
   opts: ListNotificationsOptions = {},
 ): Promise<ListNotificationsResult> {
+  return timed("notifications.listNotifications", async () => {
   const limit = clampLimit(opts.limit);
   const wheres: SQL[] = [];
   if (opts.before) wheres.push(lt(notifications.createdAt, opts.before));
@@ -345,6 +355,7 @@ export async function listNotifications(
   const last = filtered[filtered.length - 1];
   const nextCursor = hasMore && last ? last.createdAt.toISOString() : null;
   return { rows: filtered, nextCursor, hasMore };
+  });
 }
 
 export interface NotificationDeliveryStats {
@@ -364,6 +375,7 @@ export interface NotificationDeliveryStats {
 export async function getNotificationDeliveryStats(
   now: Date = new Date(),
 ): Promise<NotificationDeliveryStats> {
+  return timed("notifications.getNotificationDeliveryStats", async () => {
   const sinceIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const rows = (await db.execute(sql`
     WITH last_24h AS (
@@ -408,4 +420,5 @@ export async function getNotificationDeliveryStats(
     failures24h: Number(row?.with_failures ?? 0),
     byChannel24h: merged,
   };
+  });
 }

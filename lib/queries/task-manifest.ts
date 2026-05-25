@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db, tasks } from "@/lib/db";
+import { timed } from "./with-timing";
 
 export type TaskManifestEntry = {
   id: string;
@@ -15,10 +16,12 @@ const MAX_ENTRIES = 500;
  * Intentionally narrow — id/title/subject only — to keep payload small.
  */
 export async function getTaskManifest(): Promise<TaskManifestEntry[]> {
+  return timed("task-manifest.getTaskManifest", async () => {
   return db
     .select({ id: tasks.id, title: tasks.title, subject: tasks.subject })
     .from(tasks)
     .where(eq(tasks.archived, false))
     .orderBy(desc(tasks.updatedAt))
     .limit(MAX_ENTRIES);
+  });
 }

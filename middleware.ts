@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { authMiddleware } from "next-firebase-auth-edge";
+import { log } from "@/lib/log";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -60,7 +61,9 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     },
     handleError: async (error) => {
-      console.error("auth middleware error", error);
+      log.error("auth.middleware_error", {
+        err: error instanceof Error ? error.message : String(error),
+      });
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);

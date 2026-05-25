@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { db, employees } from "@/lib/db";
 import { taskEvents } from "@/db/schema";
 import type { TaskEventType } from "@/lib/events";
+import { timed } from "./with-timing";
 
 export type AuditFeedRow = {
   id: string;
@@ -21,6 +22,7 @@ export type AuditFeedRow = {
  * "task participants OR admin" read rule (migration 0008).
  */
 export async function listTaskEvents(taskId: string): Promise<AuditFeedRow[]> {
+  return timed("audit.listTaskEvents", async () => {
   const rows = await db
     .select({
       id: taskEvents.id,
@@ -49,4 +51,5 @@ export async function listTaskEvents(taskId: string): Promise<AuditFeedRow[]> {
     note: r.note,
     createdAt: r.createdAt,
   }));
+  });
 }

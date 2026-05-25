@@ -1,5 +1,6 @@
 import { db, employees } from "@/lib/db";
 import { asc, eq } from "drizzle-orm";
+import { timed } from "./with-timing";
 
 /**
  * Returns the employee roster ordered by name.
@@ -15,8 +16,10 @@ import { asc, eq } from "drizzle-orm";
 export async function listEmployees(
   opts: { includeInactive?: boolean } = {},
 ) {
+  return timed("employees.listEmployees", async () => {
   const q = db.select().from(employees);
   return opts.includeInactive
     ? q.orderBy(asc(employees.name))
     : q.where(eq(employees.isActive, true)).orderBy(asc(employees.name));
+  });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { log } from "@/lib/log";
 
 /**
  * M4 Commit 3c — registers `/sw.js` once per browser session.  This is a
@@ -20,7 +21,9 @@ export function RegisterSW() {
       .register("/sw.js")
       .catch((err) => {
         // Logging only — failure to register the SW must not crash the app.
-        console.error("[VPinnacle] SW register failed", err);
+        log.error("pwa.sw_register_failed", {
+          err: err instanceof Error ? err.message : String(err),
+        });
       });
   }, []);
   return null;

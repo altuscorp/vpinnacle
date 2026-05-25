@@ -2,6 +2,7 @@ import "server-only";
 import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import type { TaskStatus } from "@/db/enums";
+import { timed } from "./with-timing";
 export {
   parseActivityFilters,
   groupByDay,
@@ -53,6 +54,7 @@ export const MAX_PAGE_SIZE = 200;
 export async function listAllActivity(
   opts: ListAllActivityOptions = {},
 ): Promise<ListAllActivityResult> {
+  return timed("activity.listAllActivity", async () => {
   const limit = clampLimit(opts.limit);
   const source: readonly ActivitySource[] =
     opts.source && opts.source.length > 0
@@ -194,6 +196,7 @@ export async function listAllActivity(
   const nextCursor = hasMore && last ? last.createdAt.toISOString() : null;
 
   return { events, nextCursor, hasMore };
+  });
 }
 
 /** Activity-feed summary tiles used by the sparkline-style strip cards. */
@@ -212,6 +215,7 @@ export interface ActivityStats {
  * semantics (server-local by default).
  */
 export async function getActivityStats(now: Date = new Date()): Promise<ActivityStats> {
+  return timed("activity.getActivityStats", async () => {
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -247,6 +251,7 @@ export async function getActivityStats(now: Date = new Date()): Promise<Activity
     commentsToday: Number(row?.comments_today ?? 0),
     statusChangesToday: Number(row?.status_changes_today ?? 0),
   };
+  });
 }
 
 function clampLimit(n: number | undefined): number {

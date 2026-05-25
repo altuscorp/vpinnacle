@@ -1,3 +1,5 @@
+import { timed } from "./with-timing";
+
 type Row = { tags: string[] | null };
 
 /**
@@ -19,6 +21,7 @@ export function dedupTags(rows: Row[]): string[] {
 }
 
 export async function getDistinctTags(): Promise<string[]> {
+  return timed("distinct-tags.getDistinctTags", async () => {
   // Lazy-imported so the pure `dedupTags` helper above can be unit-tested
   // without booting the env/db modules (no .env.local in test env).
   const { db, tasks } = await import("@/lib/db");
@@ -28,4 +31,5 @@ export async function getDistinctTags(): Promise<string[]> {
     .from(tasks)
     .where(eq(tasks.archived, false));
   return dedupTags(rows);
+  });
 }

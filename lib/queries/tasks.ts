@@ -3,10 +3,12 @@ import { alias } from "drizzle-orm/pg-core";
 import { db, employees, tasks } from "@/lib/db";
 import { TASK_STATUSES, TASK_PRIORITIES } from "@/db/enums";
 import type { TaskListFilters, TaskListRow } from "@/lib/types";
+import { timed } from "./with-timing";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export async function listTasks(filters: TaskListFilters): Promise<TaskListRow[]> {
+  return timed("tasks.listTasks", async () => {
   const conditions = [eq(tasks.archived, filters.archived)];
 
   if (filters.startDate) conditions.push(gte(tasks.createdAt, filters.startDate));
@@ -93,6 +95,7 @@ export async function listTasks(filters: TaskListFilters): Promise<TaskListRow[]
   // so this keeps the matcher pure + testable without ILIKE churn.
   const q = filters.q?.trim();
   return q ? projected.filter((r) => matchesSearch(r, q)) : projected;
+  });
 }
 
 /**
@@ -152,6 +155,7 @@ export async function listTasksForExport(
   filters: TaskListFilters,
   opts: { limit?: number } = {},
 ): Promise<TaskExportRow[]> {
+  return timed("tasks.listTasksForExport", async () => {
   const limit = opts.limit ?? 10_000;
   const conditions = [eq(tasks.archived, filters.archived)];
 
@@ -227,9 +231,11 @@ export async function listTasksForExport(
     approvalStatus: r.approvalStatus,
     revisedTargetDate: r.revisedTargetDate,
   }));
+  });
 }
 
 export async function listDistinctSubjects(): Promise<string[]> {
+  return timed("tasks.listDistinctSubjects", async () => {
   const rows = await db
     .selectDistinct({ subject: tasks.subject })
     .from(tasks);
@@ -237,6 +243,7 @@ export async function listDistinctSubjects(): Promise<string[]> {
     .map((r) => r.subject)
     .filter((s): s is string => typeof s === "string" && s.length > 0)
     .sort();
+  });
 }
 
 export type TaskDetail = {
@@ -270,6 +277,7 @@ export type TaskDetail = {
 };
 
 export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
+  return timed("tasks.getTaskById", async () => {
   const doerEmp      = alias(employees, "doer_emp");
   const initEmp      = alias(employees, "init_emp");
   const creatorEmp   = alias(employees, "creator_emp");
@@ -311,4 +319,5 @@ export async function getTaskById(taskId: string): Promise<TaskDetail | null> {
 
   if (!row) return null;
   return row as TaskDetail;
+  });
 }

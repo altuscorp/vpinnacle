@@ -10,6 +10,7 @@ import {
   verifyPasswordResetCode,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
+import { log } from "@/lib/log";
 import { Lock, KeyRound, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -114,10 +115,9 @@ export function SetPasswordForm() {
         } catch (signInErr) {
           // Password was set, but auto-sign-in failed — fall back to
           // sending the user to /login with their password ready.
-          console.warn(
-            "[set-password] auto-sign-in failed; routing to /login",
-            signInErr,
-          );
+          log.warn("set_password.auto_sign_in_failed", {
+            err: signInErr instanceof Error ? signInErr.message : String(signInErr),
+          });
           setStatus("done");
           router.replace("/login" as Route);
         }

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { departments, employees, settingsEvents } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/current";
+import { log } from "@/lib/log";
 import {
   CreateDepartmentSchema,
   UpdateDepartmentSchema,
@@ -62,7 +63,10 @@ export async function createDepartment(
       toValue: { name: inserted.name, sortOrder: inserted.sortOrder },
     });
   } catch (err) {
-    console.error("[createDepartment] audit write failed", err);
+    log.error("department.audit_write_failed", {
+      op: "create",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/departments");
@@ -122,10 +126,10 @@ export async function updateDepartment(
     } catch (err: unknown) {
       // Non-fatal: the FK is still correct; only the legacy text column
       // is stale.  Log + continue.
-      console.error(
-        "[updateDepartment] failed to propagate name to employees.department",
-        err,
-      );
+      log.error("department.name_propagate_failed", {
+        departmentId: dept.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -155,7 +159,10 @@ export async function updateDepartment(
       });
     }
   } catch (err) {
-    console.error("[updateDepartment] audit write failed", err);
+    log.error("department.audit_write_failed", {
+      op: "update",
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   revalidatePath("/admin/departments");

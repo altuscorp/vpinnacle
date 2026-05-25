@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
@@ -6,4 +9,4 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["firebase-admin", "pdfkit"],
 };
 
-export default nextConfig;
+export default withAnalyzer(nextConfig);

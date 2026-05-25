@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 import { sendResetPasswordEmail } from "@/lib/email/resend";
+import { log } from "@/lib/log";
 
 const RequestSchema = z.object({
   email: z.string().trim().toLowerCase().email("Invalid email"),
@@ -45,9 +46,10 @@ export async function requestPasswordReset(
     const { error } = await sendResetPasswordEmail({ email, resetLink: link });
     if (error) {
       // Email layer (Resend) is broken — operator action needed.
-      console.error(
-        `[requestPasswordReset] sendResetPasswordEmail failed for ${email}: ${error}`,
-      );
+      log.error("password_reset.email_send_failed", {
+        email,
+        err: String(error),
+      });
     }
   } catch (err) {
     const code = (err as { code?: string })?.code;
@@ -58,10 +60,10 @@ export async function requestPasswordReset(
     }
     // Anything else means our infra (Firebase env, Resend, network) is
     // misconfigured. Log loudly so it's discoverable in server logs.
-    console.error(
-      `[requestPasswordReset] unexpected failure for ${email}:`,
-      err,
-    );
+    log.error("password_reset.unexpected_failure", {
+      email,
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
   return { ok: true };
 }
